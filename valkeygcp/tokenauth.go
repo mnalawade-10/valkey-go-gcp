@@ -58,8 +58,9 @@ type TokenAuthOptions struct {
 	Source func(ctx context.Context) (string, error)
 	// ReloadInterval is how often live connections re-AUTH with the current token, so a
 	// rotated token reaches them. The token itself is read at most once per half interval,
-	// however many connections ask for it. Zero means DefaultTokenReloadInterval; negative
-	// turns reloading off. A positive interval must be at least 1s.
+	// however many connections ask for it. Zero means DefaultTokenReloadInterval, or no
+	// reloading when the source is Token, which can't change; negative turns reloading off.
+	// A positive interval must be at least 1s.
 	ReloadInterval time.Duration
 	// OnCredentialError receives the token read errors that valkeygcp works around instead
 	// of returning: when a re-read fails, connections keep the last token that worked, and
@@ -161,7 +162,14 @@ func accessOnce(ctx context.Context, hc *http.Client, reqURL string) (data strin
 	}
 	resp, err := hc.Do(req)
 	if err != nil {
-		return "", ctx.Err() == nil, err // the network or the credentials, unless ctx ended
+		// Credentials that the token endpoint refuses, for example a revoked key, are refused
+		// again on a retry. Other errors, from the network or the metadata server, are
+		// usually temporary.
+		var refused *oauth2.RetrieveError
+		if errors.As(err, &refused) && refused.Response != nil && !retryableStatus(refused.Response.StatusCode) {
+			return "", false, err
+		}
+		return "", ctx.Err() == nil, err // anything else is worth another try, unless ctx ended
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20)) // a payload is at most 64 KiB
@@ -218,23 +226,31 @@ func secretManagerError(status string, body []byte) error {
 // One reader, with one HTTP client and one Application Default Credentials token cache,
 // serves every Token Auth provider in the process: valkey.Client has no close hook that
 // could release a reader per provider. The reader is created on first use and kept for the
-// life of the process; a failed creation is retried on the next call.
+// life of the process; a failed creation is retried on the next call. secretMu guards
+// secretReader only, not its creation: finding the credentials can hang, and a setup that
+// has given up on it must not block later ones.
 var (
 	secretMu     sync.Mutex
 	secretReader func(ctx context.Context, version string) (string, error)
 )
 
 // sharedSecretReader returns the process-wide Secret Manager reader, creating it on first
-// use.
+// use. Callers that find no reader each create one, and the first one stored is kept.
 func sharedSecretReader(ctx context.Context) (func(context.Context, string) (string, error), error) {
+	secretMu.Lock()
+	read := secretReader
+	secretMu.Unlock()
+	if read != nil {
+		return read, nil
+	}
+	// The reader outlives ctx, so it must not inherit ctx's cancellation.
+	read, err := newSecretManagerReader(context.WithoutCancel(ctx))
+	if err != nil {
+		return nil, fmt.Errorf("valkeygcp: secret manager client: %w", err)
+	}
 	secretMu.Lock()
 	defer secretMu.Unlock()
 	if secretReader == nil {
-		// The reader outlives ctx, so it must not inherit ctx's cancellation.
-		read, err := newSecretManagerReader(context.WithoutCancel(ctx))
-		if err != nil {
-			return nil, fmt.Errorf("valkeygcp: secret manager client: %w", err)
-		}
 		secretReader = read
 	}
 	return secretReader, nil
@@ -245,6 +261,8 @@ func sharedSecretReader(ctx context.Context) (func(context.Context, string) (str
 // first read, which also stop after 15s when ctx has no earlier deadline.
 func newTokenAuthProvider(ctx context.Context, opt TokenAuthOptions) (*tokenAuthProvider, error) {
 	switch {
+	case opt.ReloadInterval == 0 && opt.Source == nil && opt.SecretVersion == "" && opt.Token != "":
+		opt.ReloadInterval = -1 // a fixed token can't change, so re-AUTHing would resend it
 	case opt.ReloadInterval == 0:
 		opt.ReloadInterval = DefaultTokenReloadInterval
 	case opt.ReloadInterval > 0 && opt.ReloadInterval < minTokenReloadInterval:

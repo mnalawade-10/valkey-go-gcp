@@ -17,7 +17,8 @@
 //   - MEMORYSTORE_TEST_TOKEN: a fixed token.
 //
 // Optional: MEMORYSTORE_TEST_TOKEN_USERNAME, the token auth user (empty means the default
-// user), and MEMORYSTORE_TEST_TOKEN_RELOAD, the reload interval (for example 1m; default 5m).
+// user), and MEMORYSTORE_TEST_TOKEN_RELOAD, the reload interval (for example 1m; default 5m,
+// or no reloading with MEMORYSTORE_TEST_TOKEN).
 //
 // It runs one SET/GET pair every 200ms, each limited to 5 seconds, and logs the counts after
 // every 300 successful pairs, about once a minute. When stopped, it prints the totals and

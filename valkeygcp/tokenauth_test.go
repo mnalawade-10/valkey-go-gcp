@@ -46,8 +46,8 @@ func allowShortReloads(t *testing.T) {
 	t.Cleanup(func() { minTokenReloadInterval = orig })
 }
 
-// A fixed token without a username logs in as the default user, and the next re-AUTH is
-// scheduled within the default reload interval.
+// A fixed token without a username logs in as the default user. A fixed token can't change,
+// so no re-AUTH is scheduled unless ReloadInterval asks for one.
 func TestTokenAuth_StaticDefaultUser(t *testing.T) {
 	p, err := newTokenAuthProvider(context.Background(), TokenAuthOptions{Token: "static-token"})
 	if err != nil {
@@ -58,8 +58,16 @@ func TestTokenAuth_StaticDefaultUser(t *testing.T) {
 	if creds.Username != "" || creds.Password != "static-token" {
 		t.Fatalf("creds = %+v", creds)
 	}
-	if d := time.Until(creds.RefreshAfter); d <= 0 || d > DefaultTokenReloadInterval {
-		t.Errorf("RefreshAfter in %v, want within the default reload interval", d)
+	if !creds.RefreshAfter.IsZero() {
+		t.Errorf("RefreshAfter = %v, want none: re-AUTHing would resend the same token", creds.RefreshAfter)
+	}
+
+	p, err = newTokenAuthProvider(context.Background(), TokenAuthOptions{Token: "static-token", ReloadInterval: time.Minute})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d := time.Until(authOnce(t, p).RefreshAfter); d <= 0 || d > time.Minute {
+		t.Errorf("RefreshAfter in %v, want within the 1m ReloadInterval that was set", d)
 	}
 }
 
@@ -292,7 +300,7 @@ func TestSharedSecretReader(t *testing.T) {
 	})
 	created, fail := 0, true
 	newSecretManagerReader = func(context.Context) (func(context.Context, string) (string, error), error) {
-		created++ // called under secretMu
+		created++ // the setups below run one at a time
 		if fail {
 			return nil, errors.New("no credentials")
 		}
@@ -628,6 +636,40 @@ func TestAccessSecretVersion_RetryThenSuccess(t *testing.T) {
 	}
 }
 
+// Credentials that the token endpoint refuses fail the read at once, without a retry; a
+// token endpoint that is busy is retried, like Secret Manager itself.
+func TestAccessSecretVersion_CredentialErrors(t *testing.T) {
+	var requests atomic.Int32
+	secretManagerServer(t, func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		fmt.Fprint(w, secretPayload("tok"))
+	})
+	for _, c := range []struct {
+		status  int
+		fetches int32 // token requests
+	}{
+		{http.StatusBadRequest, 1}, // for example a revoked key
+		{http.StatusServiceUnavailable, secretReadAttempts},
+	} {
+		var fetches atomic.Int32
+		hc := oauth2.NewClient(context.Background(), tokenSourceFunc(func() (*oauth2.Token, error) {
+			fetches.Add(1)
+			return nil, &oauth2.RetrieveError{Response: &http.Response{StatusCode: c.status, Status: http.StatusText(c.status)}}
+		}))
+		_, err := accessSecretVersion(context.Background(), hc, "projects/p/secrets/s/versions/1")
+		var refused *oauth2.RetrieveError
+		if !errors.As(err, &refused) {
+			t.Errorf("status %d: got %v, want the token endpoint's error", c.status, err)
+		}
+		if n := fetches.Load(); n != c.fetches {
+			t.Errorf("status %d: %d token requests, want %d", c.status, n, c.fetches)
+		}
+	}
+	if n := requests.Load(); n != 0 {
+		t.Errorf("Secret Manager got %d requests without a token", n)
+	}
+}
+
 // SecretVersion reads through the shared reader with Application Default Credentials,
 // which the access token on each request comes from.
 func TestTokenAuth_SecretVersionThroughREST(t *testing.T) {
@@ -685,15 +727,16 @@ func TestTokenAuth_SecretVersionThroughREST(t *testing.T) {
 }
 
 // Finding the credentials for SecretVersion can hang and ignore ctx. Setup still stops at
-// NewClient's deadline, also for a caller waiting behind another one's setup, and the shared
-// reader is kept for later providers once it is ready.
+// NewClient's deadline, and the hung lookup doesn't hold up later setups: they find the
+// credentials themselves. When the hung lookup returns, the reader stored first is kept.
 func TestTokenAuth_SecretManagerSetupBounded(t *testing.T) {
 	origNew := newSecretManagerReader
 	secretMu.Lock()
 	origReader := secretReader
 	secretReader = nil
 	secretMu.Unlock()
-	release := make(chan struct{})
+	release, returned := make(chan struct{}), make(chan struct{})
+	entered := make(chan struct{})
 	t.Cleanup(func() {
 		select {
 		case <-release:
@@ -707,52 +750,67 @@ func TestTokenAuth_SecretManagerSetupBounded(t *testing.T) {
 	})
 	var created atomic.Int32
 	newSecretManagerReader = func(context.Context) (func(context.Context, string) (string, error), error) {
-		created.Add(1)
-		<-release // finding the credentials hangs, whatever ctx says
+		if created.Add(1) == 1 {
+			close(entered)
+			<-release // the first lookup hangs, whatever ctx says
+			close(returned)
+			return func(context.Context, string) (string, error) { return "late", nil }, nil
+		}
 		return func(context.Context, string) (string, error) { return "tok", nil }, nil
 	}
 	const version = "projects/p/secrets/s/versions/1"
 
-	// Two setups at once: one waits for the hung creation, the other for the first to finish.
-	// They report on a buffered channel, so a setup that outlives a failed test never blocks.
+	// The first setup stops at its deadline while its lookup hangs. It reports on a buffered
+	// channel, so a setup that outlives a failed test never blocks.
 	type result struct {
 		err  error
 		took time.Duration
 	}
-	results := make(chan result, 2)
-	for range 2 {
-		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-			defer cancel()
-			start := time.Now()
-			_, err := newTokenAuthProvider(ctx, TokenAuthOptions{SecretVersion: version})
-			results <- result{err, time.Since(start)}
-		}()
-	}
-	for range 2 {
-		select {
-		case r := <-results:
-			if !errors.Is(r.err, context.DeadlineExceeded) || !strings.Contains(r.err.Error(), "secret manager setup") {
-				t.Errorf("got %v, want the setup stopped at the deadline", r.err)
-			}
-			if r.took > 2*time.Second {
-				t.Errorf("setup took %v despite a 50ms deadline", r.took)
-			}
-		case <-time.After(5 * time.Second):
-			t.Fatal("setup didn't stop at its deadline while finding the credentials hung")
+	first := make(chan result, 1)
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		defer cancel()
+		start := time.Now()
+		_, err := newTokenAuthProvider(ctx, TokenAuthOptions{SecretVersion: version})
+		first <- result{err, time.Since(start)}
+	}()
+	select {
+	case r := <-first:
+		if !errors.Is(r.err, context.DeadlineExceeded) || !strings.Contains(r.err.Error(), "secret manager setup") {
+			t.Fatalf("got %v, want the setup stopped at the deadline", r.err)
 		}
+		if r.took > 2*time.Second {
+			t.Errorf("setup took %v despite a 50ms deadline", r.took)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("setup didn't stop at its deadline while finding the credentials hung")
 	}
 
-	close(release) // the creation finishes in the background and keeps its reader
-	p, err := newTokenAuthProvider(context.Background(), TokenAuthOptions{SecretVersion: version})
+	// A later setup doesn't wait for the hung lookup: it finds the credentials itself.
+	<-entered // the first lookup is underway, so this setup is the second one
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	p, err := newTokenAuthProvider(ctx, TokenAuthOptions{SecretVersion: version})
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("setup while another lookup hangs: %v", err)
 	}
 	if got := authOnce(t, p).Password; got != "tok" {
 		t.Fatalf("got %q", got)
 	}
-	if n := created.Load(); n != 1 {
-		t.Errorf("readers created = %d, want 1: the abandoned creation's reader is shared", n)
+
+	// The hung lookup returns, and the reader stored first is kept.
+	close(release)
+	<-returned
+	time.Sleep(20 * time.Millisecond) // time for the abandoned setup to try to store its reader
+	p, err = newTokenAuthProvider(context.Background(), TokenAuthOptions{SecretVersion: version})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := authOnce(t, p).Password; got != "tok" {
+		t.Errorf("got %q, want the token from the reader stored first", got)
+	}
+	if n := created.Load(); n != 2 {
+		t.Errorf("readers created = %d, want 2: the hung one and the later setup's", n)
 	}
 }
 
