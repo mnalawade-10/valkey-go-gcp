@@ -143,7 +143,7 @@ func TestTokenAuth_LastKnownGood(t *testing.T) {
 	fail.Store(true)
 	time.Sleep(120 * time.Millisecond) // past the 100ms cache window
 	if creds := authOnce(t, p); creds.Password != "good" {
-		t.Fatalf("got %q, want the last token that worked", creds.Password)
+		t.Fatalf("got %q, want the last token read successfully", creds.Password)
 	}
 	mu.Lock()
 	n := len(absorbed)
@@ -361,7 +361,7 @@ func TestWithTokenAuth_HonorsContext(t *testing.T) {
 	}
 }
 
-// WithTokenAuth reports read errors covered by the last token that worked.
+// WithTokenAuth reports read errors covered by the last token read successfully.
 func TestWithTokenAuth_OnCredentialError(t *testing.T) {
 	allowShortReloads(t)
 	var fail atomic.Bool
@@ -726,34 +726,118 @@ func TestTokenAuth_SecretVersionThroughREST(t *testing.T) {
 	}
 }
 
+// Credentials such as a key file or gcloud's user credentials request Secret Manager's
+// access token through an HTTP client that stops after tokenExchangeTimeout. A token
+// endpoint that hangs fails the read instead of holding the credentials' token cache, and a
+// later read gets a token once the endpoint answers. An HTTP client that ctx brings is
+// used as is.
+func TestNewSecretManagerReader_TokenExchangeTimeout(t *testing.T) {
+	secretManagerServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer adc-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		fmt.Fprint(w, secretPayload("tok"))
+	})
+	var hang atomic.Bool
+	hang.Store(true)
+	release := make(chan struct{})
+	tokenEndpoint := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if hang.Load() {
+			select {
+			case <-release:
+			case <-r.Context().Done():
+			}
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"access_token":"adc-token","token_type":"Bearer","expires_in":3600}`)
+	}))
+	t.Cleanup(tokenEndpoint.Close)
+	t.Cleanup(func() { close(release) }) // runs first, so Close doesn't wait for a hung request
+	origFind, origTimeout := findDefaultCredentials, tokenExchangeTimeout
+	t.Cleanup(func() { findDefaultCredentials, tokenExchangeTimeout = origFind, origTimeout })
+	tokenExchangeTimeout = 50 * time.Millisecond
+	var credsCtx context.Context
+	findDefaultCredentials = func(ctx context.Context, params google.CredentialsParams) (*google.Credentials, error) {
+		credsCtx = ctx
+		user := fmt.Sprintf(`{"type":"authorized_user","client_id":"id","client_secret":"secret","refresh_token":"refresh","token_uri":%q}`, tokenEndpoint.URL)
+		return google.CredentialsFromJSONWithTypeAndParams(ctx, []byte(user), google.AuthorizedUser, params)
+	}
+	read, err := newSecretManagerReader(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	const version = "projects/p/secrets/s/versions/1"
+
+	// The read reports on a buffered channel, so a read that outlives a failed test never
+	// blocks.
+	failed := make(chan error, 1)
+	go func() {
+		_, err := read(context.Background(), version)
+		failed <- err
+	}()
+	select {
+	case err := <-failed:
+		if err == nil {
+			t.Fatal("read succeeded while the token endpoint hangs")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("read still waiting for a token endpoint that hangs")
+	}
+	hang.Store(false)
+	if got, err := read(context.Background(), version); err != nil || got != "tok" {
+		t.Fatalf("got %q, %v once the token endpoint answers", got, err)
+	}
+
+	own := &http.Client{}
+	if _, err := newSecretManagerReader(context.WithValue(context.Background(), oauth2.HTTPClient, own)); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := credsCtx.Value(oauth2.HTTPClient).(*http.Client); got != own {
+		t.Error("the credentials didn't get the HTTP client from ctx")
+	}
+}
+
 // Finding the credentials for SecretVersion can hang and ignore ctx. Setup still stops at
 // NewClient's deadline, and the hung lookup doesn't hold up later setups: they find the
 // credentials themselves. When the hung lookup returns, the reader stored first is kept.
 func TestTokenAuth_SecretManagerSetupBounded(t *testing.T) {
-	origNew := newSecretManagerReader
+	origNew, origSource := newSecretManagerReader, newSecretSource
 	secretMu.Lock()
 	origReader := secretReader
 	secretReader = nil
 	secretMu.Unlock()
-	release, returned := make(chan struct{}), make(chan struct{})
-	entered := make(chan struct{})
+	release, entered := make(chan struct{}), make(chan struct{})
+	abandoned := make(chan struct{}) // closed when the first setup's newSecretSource returns
 	t.Cleanup(func() {
 		select {
 		case <-release:
 		default:
 			close(release)
 		}
-		newSecretManagerReader = origNew
+		// Let the abandoned setup finish, so it can't store its reader after the restore.
+		select {
+		case <-abandoned:
+		case <-time.After(5 * time.Second):
+		}
+		newSecretManagerReader, newSecretSource = origNew, origSource
 		secretMu.Lock()
 		secretReader = origReader
 		secretMu.Unlock()
 	})
+	var sources atomic.Int32
+	newSecretSource = func(ctx context.Context, version string) (func(context.Context) (string, error), error) {
+		if sources.Add(1) == 1 {
+			defer close(abandoned)
+		}
+		return origSource(ctx, version)
+	}
 	var created atomic.Int32
 	newSecretManagerReader = func(context.Context) (func(context.Context, string) (string, error), error) {
 		if created.Add(1) == 1 {
 			close(entered)
 			<-release // the first lookup hangs, whatever ctx says
-			close(returned)
 			return func(context.Context, string) (string, error) { return "late", nil }, nil
 		}
 		return func(context.Context, string) (string, error) { return "tok", nil }, nil
@@ -800,8 +884,11 @@ func TestTokenAuth_SecretManagerSetupBounded(t *testing.T) {
 
 	// The hung lookup returns, and the reader stored first is kept.
 	close(release)
-	<-returned
-	time.Sleep(20 * time.Millisecond) // time for the abandoned setup to try to store its reader
+	select {
+	case <-abandoned: // the abandoned setup has tried to store its reader
+	case <-time.After(5 * time.Second):
+		t.Fatal("the abandoned setup didn't return after its lookup did")
+	}
 	p, err = newTokenAuthProvider(context.Background(), TokenAuthOptions{SecretVersion: version})
 	if err != nil {
 		t.Fatal(err)

@@ -21,8 +21,9 @@
 // or no reloading with MEMORYSTORE_TEST_TOKEN).
 //
 // It runs one SET/GET pair every 200ms, each limited to 5 seconds, and logs the counts after
-// every 300 successful pairs, about once a minute. When stopped, it prints the totals and
-// exits with status 1 if any pair failed.
+// every 300 successful pairs, about once a minute. The keys carry a random prefix of their
+// own, so two copies don't overwrite each other's keys. When stopped, it prints the totals
+// and exits with status 1 if any pair failed.
 package main
 
 import (
@@ -31,6 +32,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"os"
 	"os/signal"
 	"sync/atomic"
@@ -111,6 +113,8 @@ func main() {
 	log.Println("✅ Initial RESP3 HELLO 3 AUTH handshake succeeded!")
 
 	var successCount, errorCount uint64
+	// The keys of this run, under a random prefix, so two copies can't overwrite each other's.
+	keyPrefix := fmt.Sprintf("token-e2e:%08x:key:", rand.Uint32())
 	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
 	stopChan := make(chan os.Signal, 1)
@@ -121,7 +125,7 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			if err := setGet(ctx, client); err != nil {
+			if err := setGet(ctx, client, keyPrefix); err != nil {
 				errorCount++
 				log.Printf("❌ %v", err)
 				continue
@@ -147,11 +151,12 @@ func main() {
 // can't keep the loop from reporting the failure or noticing Ctrl+C.
 const pairTimeout = 5 * time.Second
 
-// setGet runs one SET/GET pair and checks that GET returns the value SET wrote.
-func setGet(ctx context.Context, client valkey.Client) error {
+// setGet runs one SET/GET pair on a key under keyPrefix and checks that GET returns the
+// value SET wrote.
+func setGet(ctx context.Context, client valkey.Client, keyPrefix string) error {
 	ctx, cancel := context.WithTimeout(ctx, pairTimeout)
 	defer cancel()
-	key := fmt.Sprintf("token-e2e-key-%d", time.Now().UnixNano()%100)
+	key := fmt.Sprintf("%s%d", keyPrefix, time.Now().UnixNano()%100)
 	val := fmt.Sprintf("val-%d", time.Now().UnixNano())
 	if err := client.Do(ctx, client.B().Set().Key(key).Value(val).Ex(60*time.Second).Build()).Error(); err != nil {
 		return fmt.Errorf("SET failed: %w", err)

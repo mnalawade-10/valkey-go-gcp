@@ -63,8 +63,8 @@ type TokenAuthOptions struct {
 	// A positive interval must be at least 1s.
 	ReloadInterval time.Duration
 	// OnCredentialError receives the token read errors that valkeygcp works around instead
-	// of returning: when a re-read fails, connections keep the last token that worked, and
-	// the read is retried within 30s. Use it for logs and metrics.
+	// of returning: when a re-read fails, connections keep the last token read successfully,
+	// and the read is retried within 30s. Use it for logs and metrics.
 	OnCredentialError func(error)
 }
 
@@ -111,12 +111,25 @@ var secretRetryBackoff = 250 * time.Millisecond
 // crc32c checks secret payloads against the checksum Secret Manager sends with them.
 var crc32c = crc32.MakeTable(crc32.Castagnoli)
 
+// tokenExchangeTimeout limits one request that Application Default Credentials make for the
+// access token of Secret Manager reads. It is a variable so tests can shorten it.
+var tokenExchangeTimeout = 10 * time.Second
+
 // newSecretManagerReader creates the reader behind sharedSecretReader: it reads secret
 // versions through Secret Manager's REST API with Application Default Credentials. Plain
 // HTTPS keeps the Secret Manager client library, and the gRPC stack it brings, out of every
 // program that imports valkeygcp. It is a variable so tests can replace it.
 var newSecretManagerReader = func(ctx context.Context) (func(ctx context.Context, version string) (string, error), error) {
-	creds, err := findDefaultCredentials(ctx, google.CredentialsParams{Scopes: []string{DefaultCloudPlatformScope}})
+	// Key files, user credentials and Workload Identity Federation request their access token
+	// with the HTTP client in ctx, http.DefaultClient by default, which has no timeout. A
+	// request that hangs would hold their token cache's lock, and so block every later read,
+	// for as long as it hangs. They get a client with a timeout, unless ctx brings its own.
+	// Metadata-server credentials have a timeout of their own.
+	credsCtx := ctx
+	if _, ok := ctx.Value(oauth2.HTTPClient).(*http.Client); !ok {
+		credsCtx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Timeout: tokenExchangeTimeout})
+	}
+	creds, err := findDefaultCredentials(credsCtx, google.CredentialsParams{Scopes: []string{DefaultCloudPlatformScope}})
 	if err != nil {
 		return nil, fmt.Errorf("finding Application Default Credentials: %w", err)
 	}
@@ -308,7 +321,7 @@ func (p *tokenAuthProvider) token(ctx context.Context) (string, bool, error) {
 
 // cachedToken returns the token, reading it again at most once per half reload interval.
 // failing reports that the last read failed; absorbed is the error of a read that failed
-// just now, covered by the last token that worked.
+// just now, covered by the last token read successfully.
 func (p *tokenAuthProvider) cachedToken(ctx context.Context) (tok string, failing bool, absorbed, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
