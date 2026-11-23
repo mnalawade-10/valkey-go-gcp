@@ -3,13 +3,10 @@ package valkeygcp
 import (
 	"cmp"
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"hash/crc32"
 	"net"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"strings"
 	"sync"
@@ -17,9 +14,15 @@ import (
 	"testing"
 	"time"
 
+	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	"github.com/googleapis/gax-go/v2"
 	"github.com/valkey-io/valkey-go"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
+	"google.golang.org/api/option"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 // authOnce calls p's AuthCredentialsFn once, as valkey-go does for a new connection.
@@ -285,45 +288,6 @@ func TestTokenAuth_ReadDeadlines(t *testing.T) {
 	}
 }
 
-// One Secret Manager client serves every provider; a failed creation isn't cached.
-func TestSharedSecretReader(t *testing.T) {
-	origNew := newSecretManagerReader
-	secretMu.Lock()
-	origReader := secretReader
-	secretReader = nil
-	secretMu.Unlock()
-	t.Cleanup(func() {
-		newSecretManagerReader = origNew
-		secretMu.Lock()
-		secretReader = origReader
-		secretMu.Unlock()
-	})
-	created, fail := 0, true
-	newSecretManagerReader = func(context.Context) (func(context.Context, string) (string, error), error) {
-		created++ // the setups below run one at a time
-		if fail {
-			return nil, errors.New("no credentials")
-		}
-		return func(_ context.Context, version string) (string, error) { return "tok-" + version, nil }, nil
-	}
-	if _, err := newTokenAuthProvider(context.Background(), TokenAuthOptions{SecretVersion: "v1"}); err == nil || !strings.Contains(err.Error(), "secret manager client") {
-		t.Fatalf("got %v, want the client creation error", err)
-	}
-	fail = false
-	for _, version := range []string{"v1", "v2", "v1"} {
-		p, err := newTokenAuthProvider(context.Background(), TokenAuthOptions{SecretVersion: version})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got := authOnce(t, p).Password; got != "tok-"+version {
-			t.Fatalf("%s: got %q", version, got)
-		}
-	}
-	if created != 2 {
-		t.Fatalf("Secret Manager clients created = %d, want 2 (one failed, then one shared)", created)
-	}
-}
-
 // WithTokenAuth sets AuthCredentialsFn and the Memorystore defaults, and needs a token source.
 func TestWithTokenAuth(t *testing.T) {
 	opt, err := tokenOption(t, TokenAuthOptions{Token: "tok"})
@@ -522,292 +486,256 @@ func TestTokenAuth_SourceIgnoresContext(t *testing.T) {
 	}
 }
 
-// secretManagerServer serves AccessSecretVersion for a test and points the Secret Manager
-// endpoints at it: the global one at /, the regional ones at /<location>/.
-func secretManagerServer(t *testing.T, handler http.HandlerFunc) {
+// fakeSecretManager is a Secret Manager server for tests: it answers AccessSecretVersion
+// with respond and records the names asked for.
+type fakeSecretManager struct {
+	secretmanagerpb.UnimplementedSecretManagerServiceServer
+	mu      sync.Mutex
+	names   []string
+	respond func(name string) (*secretmanagerpb.AccessSecretVersionResponse, error)
+}
+
+func (f *fakeSecretManager) AccessSecretVersion(_ context.Context, req *secretmanagerpb.AccessSecretVersionRequest) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+	f.mu.Lock()
+	f.names = append(f.names, req.GetName())
+	respond := f.respond
+	f.mu.Unlock()
+	return respond(req.GetName())
+}
+
+// answer sets the response to every request.
+func (f *fakeSecretManager) answer(respond func(name string) (*secretmanagerpb.AccessSecretVersionResponse, error)) {
+	f.mu.Lock()
+	f.respond = respond
+	f.mu.Unlock()
+}
+
+// requests returns the names asked for since the last call.
+func (f *fakeSecretManager) requests() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	names := f.names
+	f.names = nil
+	return names
+}
+
+// fakeSecretManagerClient serves f on a local port and returns a client for it, without
+// credentials, with the client library's retry backoff shortened to a millisecond.
+func fakeSecretManagerClient(t *testing.T, f *fakeSecretManager) *secretmanager.Client {
 	t.Helper()
-	srv := httptest.NewServer(handler)
-	t.Cleanup(srv.Close)
-	origGlobal, origRegional, origBackoff := secretManagerEndpoint, regionalSecretManagerEndpoint, secretRetryBackoff
-	secretManagerEndpoint, regionalSecretManagerEndpoint, secretRetryBackoff = srv.URL, srv.URL+"/%s", time.Millisecond
-	t.Cleanup(func() {
-		secretManagerEndpoint, regionalSecretManagerEndpoint, secretRetryBackoff = origGlobal, origRegional, origBackoff
-	})
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := grpc.NewServer()
+	secretmanagerpb.RegisterSecretManagerServiceServer(srv, f)
+	go srv.Serve(lis)
+	t.Cleanup(srv.Stop)
+	c, err := secretmanager.NewClient(context.Background(), option.WithEndpoint(lis.Addr().String()), option.WithoutAuthentication(),
+		option.WithGRPCDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { c.Close() })
+	c.CallOptions.AccessSecretVersion = append(c.CallOptions.AccessSecretVersion, gax.WithRetry(func() gax.Retryer {
+		return gax.OnCodes([]codes.Code{codes.Unavailable, codes.ResourceExhausted}, gax.Backoff{Initial: time.Millisecond, Max: time.Millisecond})
+	}))
+	return c
 }
 
-// secretPayload is an AccessSecretVersion response body for data, with its CRC32C checksum.
-func secretPayload(data string) string {
-	sum := crc32.Checksum([]byte(data), crc32.MakeTable(crc32.Castagnoli))
-	return fmt.Sprintf(`{"name":"projects/1/secrets/s/versions/3","payload":{"data":%q,"dataCrc32c":"%d"}}`,
-		base64.StdEncoding.EncodeToString([]byte(data)), sum)
-}
-
-// accessSecretVersion reads global and regional secret versions, rejects bad names and
-// checksums, reports Google's error messages, and retries only a busy API.
-func TestAccessSecretVersion(t *testing.T) {
-	var mu sync.Mutex
-	var paths []string      // the paths requested by the current read
-	var status atomic.Int32 // the status of the next response; 0 means 200
-	var body atomic.Value
-	secretManagerServer(t, func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		paths = append(paths, r.URL.Path)
-		mu.Unlock()
-		if code := status.Load(); code != 0 {
-			w.WriteHeader(int(code))
-		}
-		fmt.Fprint(w, body.Load())
-	})
-	ctx := context.Background()
-	requested := func() []string {
-		mu.Lock()
-		defer mu.Unlock()
-		return paths
-	}
-	read := func(version string) (string, error) {
-		t.Helper()
-		mu.Lock()
-		paths = nil
-		mu.Unlock()
-		return accessSecretVersion(ctx, http.DefaultClient, version)
-	}
-
-	body.Store(secretPayload("token-1\n"))
-	if got, err := read("projects/p/secrets/s/versions/latest"); err != nil || got != "token-1\n" {
-		t.Fatalf("global secret: %q, %v", got, err)
-	}
-	if want, got := "/v1/projects/p/secrets/s/versions/latest:access", requested(); len(got) != 1 || got[0] != want {
-		t.Errorf("global secret: requests %v, want [%s]", got, want)
-	}
-	if got, err := read("projects/example.com:p/locations/us-east1/secrets/s_2/versions/3"); err != nil || got != "token-1\n" {
-		t.Fatalf("regional secret: %q, %v", got, err)
-	}
-	if want, got := "/us-east1/v1/projects/example.com:p/locations/us-east1/secrets/s_2/versions/3:access", requested(); len(got) != 1 || got[0] != want {
-		t.Errorf("regional secret: requests %v, want [%s] on the regional endpoint", got, want)
-	}
-	for _, version := range []string{"v1", "projects/p/secrets/s", "projects/p/secrets/s/versions/1?x=y", "projects/p/secrets/../versions/1", "projects/../secrets/s/versions/1"} {
-		if _, err := read(version); err == nil || !strings.Contains(err.Error(), "is not projects/P/secrets/S/versions/V") || len(requested()) != 0 {
-			t.Errorf("%q: got %v after %d requests, want a name error and no request", version, err, len(requested()))
-		}
-	}
-
-	// A checksum sent as a JSON number, or none, is accepted too.
-	sum := crc32.Checksum([]byte("tok"), crc32.MakeTable(crc32.Castagnoli))
-	body.Store(fmt.Sprintf(`{"payload":{"data":"dG9r","dataCrc32c":%d}}`, sum))
-	if got, err := read("projects/p/secrets/s/versions/1"); err != nil || got != "tok" {
-		t.Errorf("numeric checksum: %q, %v", got, err)
-	}
-	body.Store(`{"payload":{"data":"dG9r"}}`)
-	if got, err := read("projects/p/secrets/s/versions/1"); err != nil || got != "tok" {
-		t.Errorf("no checksum: %q, %v", got, err)
-	}
-	body.Store(`{"payload":{"data":"dG9r","dataCrc32c":"1"}}`)
-	if _, err := read("projects/p/secrets/s/versions/1"); err == nil || !strings.Contains(err.Error(), "checksum mismatch") || len(requested()) != secretReadAttempts {
-		t.Errorf("bad checksum: got %v after %d requests", err, len(requested()))
-	}
-
-	// An error with Google's error body is reported with its status and message, and a
-	// permission error is not retried.
-	status.Store(http.StatusForbidden)
-	body.Store(`{"error":{"code":403,"message":"Permission 'secretmanager.versions.access' denied","status":"PERMISSION_DENIED"}}`)
-	if _, err := read("projects/p/secrets/s/versions/1"); err == nil || !strings.Contains(err.Error(), "PERMISSION_DENIED: Permission 'secretmanager.versions.access' denied") || len(requested()) != 1 {
-		t.Errorf("permission error: got %v after %d requests, want its message and no retry", err, len(requested()))
-	}
-	// A busy API is retried, up to secretReadAttempts requests.
-	status.Store(http.StatusServiceUnavailable)
-	body.Store("unavailable")
-	if _, err := read("projects/p/secrets/s/versions/1"); err == nil || !strings.Contains(err.Error(), "503") || len(requested()) != secretReadAttempts {
-		t.Errorf("unavailable: got %v after %d requests, want %d", err, len(requested()), secretReadAttempts)
+// secretPayload is an AccessSecretVersion response for data, with its CRC32C checksum.
+func secretPayload(data string) *secretmanagerpb.AccessSecretVersionResponse {
+	sum := int64(crc32.Checksum([]byte(data), crc32.MakeTable(crc32.Castagnoli)))
+	return &secretmanagerpb.AccessSecretVersionResponse{
+		Name:    "projects/1/secrets/s/versions/3",
+		Payload: &secretmanagerpb.SecretPayload{Data: []byte(data), DataCrc32C: &sum},
 	}
 }
 
-// A read that Secret Manager turns away as busy succeeds on a later attempt.
-func TestAccessSecretVersion_RetryThenSuccess(t *testing.T) {
-	var requests atomic.Int32
-	secretManagerServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if requests.Add(1) < secretReadAttempts {
-			w.WriteHeader(http.StatusTooManyRequests)
-			return
-		}
-		fmt.Fprint(w, secretPayload("tok"))
-	})
-	if got, err := accessSecretVersion(context.Background(), http.DefaultClient, "projects/p/secrets/s/versions/1"); err != nil || got != "tok" {
-		t.Fatalf("got %q, %v after %d requests", got, err, requests.Load())
-	}
-}
-
-// Credentials that the token endpoint refuses fail the read at once, without a retry; a
-// token endpoint that is busy is retried, like Secret Manager itself.
-func TestAccessSecretVersion_CredentialErrors(t *testing.T) {
-	var requests atomic.Int32
-	secretManagerServer(t, func(w http.ResponseWriter, r *http.Request) {
-		requests.Add(1)
-		fmt.Fprint(w, secretPayload("tok"))
-	})
-	for _, c := range []struct {
-		status  int
-		fetches int32 // token requests
-	}{
-		{http.StatusBadRequest, 1}, // for example a revoked key
-		{http.StatusServiceUnavailable, secretReadAttempts},
-	} {
-		var fetches atomic.Int32
-		hc := oauth2.NewClient(context.Background(), tokenSourceFunc(func() (*oauth2.Token, error) {
-			fetches.Add(1)
-			return nil, &oauth2.RetrieveError{Response: &http.Response{StatusCode: c.status, Status: http.StatusText(c.status)}}
-		}))
-		_, err := accessSecretVersion(context.Background(), hc, "projects/p/secrets/s/versions/1")
-		var refused *oauth2.RetrieveError
-		if !errors.As(err, &refused) {
-			t.Errorf("status %d: got %v, want the token endpoint's error", c.status, err)
-		}
-		if n := fetches.Load(); n != c.fetches {
-			t.Errorf("status %d: %d token requests, want %d", c.status, n, c.fetches)
-		}
-	}
-	if n := requests.Load(); n != 0 {
-		t.Errorf("Secret Manager got %d requests without a token", n)
-	}
-}
-
-// SecretVersion reads through the shared reader with Application Default Credentials,
-// which the access token on each request comes from.
-func TestTokenAuth_SecretVersionThroughREST(t *testing.T) {
-	var auth, path atomic.Value
-	secretManagerServer(t, func(w http.ResponseWriter, r *http.Request) {
-		auth.Store(r.Header.Get("Authorization"))
-		path.Store(r.URL.Path)
-		fmt.Fprint(w, secretPayload("secret-token\n"))
-	})
-	origFind := findDefaultCredentials
+// resetSecretClients starts a test with no shared Secret Manager clients, and puts the
+// previous ones back after it.
+func resetSecretClients(t *testing.T) {
+	t.Helper()
 	secretMu.Lock()
-	origReader := secretReader
-	secretReader = nil
+	orig := secretClients
+	secretClients = map[string]*secretmanager.Client{}
 	secretMu.Unlock()
 	t.Cleanup(func() {
-		findDefaultCredentials = origFind
 		secretMu.Lock()
-		secretReader = origReader
+		secretClients = orig
 		secretMu.Unlock()
 	})
-	var scopes []string
-	findDefaultCredentials = func(_ context.Context, params google.CredentialsParams) (*google.Credentials, error) {
-		scopes = params.Scopes
-		return &google.Credentials{TokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "adc-token"})}, nil
-	}
-
-	p, err := newTokenAuthProvider(context.Background(), TokenAuthOptions{SecretVersion: "projects/p/secrets/valkey-token/versions/latest"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if creds := authOnce(t, p); creds.Password != "secret-token" {
-		t.Fatalf("got %q, want the trimmed secret", creds.Password)
-	}
-	if got := auth.Load(); got != "Bearer adc-token" {
-		t.Errorf("Authorization = %q, want the ADC access token", got)
-	}
-	if got := path.Load(); got != "/v1/projects/p/secrets/valkey-token/versions/latest:access" {
-		t.Errorf("path = %q", got)
-	}
-	if len(scopes) != 1 || scopes[0] != DefaultCloudPlatformScope {
-		t.Errorf("ADC scopes = %v, want [%s]", scopes, DefaultCloudPlatformScope)
-	}
-
-	// Without ADC, setup fails with the reason, and the next call tries again.
-	secretMu.Lock()
-	secretReader = nil
-	secretMu.Unlock()
-	findDefaultCredentials = func(context.Context, google.CredentialsParams) (*google.Credentials, error) {
-		return nil, errors.New("could not find default credentials")
-	}
-	if _, err := newTokenAuthProvider(context.Background(), TokenAuthOptions{SecretVersion: "projects/p/secrets/s/versions/1"}); err == nil ||
-		!strings.Contains(err.Error(), "secret manager client: finding Application Default Credentials: could not find default credentials") {
-		t.Fatalf("got %v, want the ADC error", err)
-	}
 }
 
-// Credentials such as a key file or gcloud's user credentials request Secret Manager's
-// access token through an HTTP client that stops after tokenExchangeTimeout. A token
-// endpoint that hangs fails the read instead of holding the credentials' token cache, and a
-// later read gets a token once the endpoint answers. An HTTP client that ctx brings is
-// used as is.
-func TestNewSecretManagerReader_TokenExchangeTimeout(t *testing.T) {
-	secretManagerServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer adc-token" {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		fmt.Fprint(w, secretPayload("tok"))
-	})
-	var hang atomic.Bool
-	hang.Store(true)
-	release := make(chan struct{})
-	tokenEndpoint := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if hang.Load() {
-			select {
-			case <-release:
-			case <-r.Context().Done():
-			}
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"access_token":"adc-token","token_type":"Bearer","expires_in":3600}`)
-	}))
-	t.Cleanup(tokenEndpoint.Close)
-	t.Cleanup(func() { close(release) }) // runs first, so Close doesn't wait for a hung request
-	origFind, origTimeout := findDefaultCredentials, tokenExchangeTimeout
-	t.Cleanup(func() { findDefaultCredentials, tokenExchangeTimeout = origFind, origTimeout })
-	tokenExchangeTimeout = 50 * time.Millisecond
-	var credsCtx context.Context
-	findDefaultCredentials = func(ctx context.Context, params google.CredentialsParams) (*google.Credentials, error) {
-		credsCtx = ctx
-		user := fmt.Sprintf(`{"type":"authorized_user","client_id":"id","client_secret":"secret","refresh_token":"refresh","token_uri":%q}`, tokenEndpoint.URL)
-		return google.CredentialsFromJSONWithTypeAndParams(ctx, []byte(user), google.AuthorizedUser, params)
-	}
-	read, err := newSecretManagerReader(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+// accessSecretVersion returns the payload, checks its checksum when there is one, and
+// leaves retries to the client library: a busy API is retried, a permission error is not.
+func TestAccessSecretVersion(t *testing.T) {
+	f := &fakeSecretManager{}
+	c := fakeSecretManagerClient(t, f)
 	const version = "projects/p/secrets/s/versions/1"
+	read := func(ctx context.Context) (string, error) {
+		f.requests()
+		return accessSecretVersion(ctx, c, version)
+	}
+	ctx := context.Background()
 
-	// The read reports on a buffered channel, so a read that outlives a failed test never
-	// blocks.
-	failed := make(chan error, 1)
-	go func() {
-		_, err := read(context.Background(), version)
-		failed <- err
-	}()
-	select {
-	case err := <-failed:
-		if err == nil {
-			t.Fatal("read succeeded while the token endpoint hangs")
+	f.answer(func(string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		return secretPayload("token-1\n"), nil
+	})
+	if got, err := read(ctx); err != nil || got != "token-1\n" {
+		t.Fatalf("got %q, %v", got, err)
+	}
+	if got := f.requests(); len(got) != 1 || got[0] != version {
+		t.Errorf("requests %v, want one for %s", got, version)
+	}
+
+	// A payload without a checksum is accepted; one with a wrong checksum is not.
+	f.answer(func(string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		return &secretmanagerpb.AccessSecretVersionResponse{Payload: &secretmanagerpb.SecretPayload{Data: []byte("tok")}}, nil
+	})
+	if got, err := read(ctx); err != nil || got != "tok" {
+		t.Errorf("no checksum: %q, %v", got, err)
+	}
+	wrong := int64(1)
+	f.answer(func(string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		return &secretmanagerpb.AccessSecretVersionResponse{Payload: &secretmanagerpb.SecretPayload{Data: []byte("tok"), DataCrc32C: &wrong}}, nil
+	})
+	if _, err := read(ctx); err == nil || !strings.Contains(err.Error(), "checksum mismatch") {
+		t.Errorf("wrong checksum: got %v", err)
+	}
+
+	// A permission error is returned at once, with Secret Manager's message.
+	f.answer(func(string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		return nil, status.Error(codes.PermissionDenied, "Permission 'secretmanager.versions.access' denied")
+	})
+	if _, err := read(ctx); status.Code(err) != codes.PermissionDenied || !strings.Contains(err.Error(), "secretmanager.versions.access") {
+		t.Errorf("permission error: got %v", err)
+	}
+	if n := len(f.requests()); n != 1 {
+		t.Errorf("permission error: %d requests, want 1: it isn't retried", n)
+	}
+
+	// A busy API is retried until it answers...
+	var calls atomic.Int32
+	f.answer(func(string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		if calls.Add(1) < 3 {
+			return nil, status.Error(codes.Unavailable, "try again")
 		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("read still waiting for a token endpoint that hangs")
+		return secretPayload("tok"), nil
+	})
+	if got, err := read(ctx); err != nil || got != "tok" || calls.Load() != 3 {
+		t.Errorf("busy, then answering: %q, %v after %d requests", got, err, calls.Load())
 	}
-	hang.Store(false)
-	if got, err := read(context.Background(), version); err != nil || got != "tok" {
-		t.Fatalf("got %q, %v once the token endpoint answers", got, err)
+	// ...and the read fails at its deadline if it never does.
+	f.answer(func(string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		return nil, status.Error(codes.Unavailable, "down")
+	})
+	short, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	defer cancel()
+	if _, err := read(short); err == nil {
+		t.Error("read succeeded while the API is down")
 	}
-
-	own := &http.Client{}
-	if _, err := newSecretManagerReader(context.WithValue(context.Background(), oauth2.HTTPClient, own)); err != nil {
-		t.Fatal(err)
-	}
-	if got, _ := credsCtx.Value(oauth2.HTTPClient).(*http.Client); got != own {
-		t.Error("the credentials didn't get the HTTP client from ctx")
+	if n := len(f.requests()); n < 2 {
+		t.Errorf("down: %d requests, want retries until the deadline", n)
 	}
 }
 
-// Finding the credentials for SecretVersion can hang and ignore ctx. Setup still stops at
-// NewClient's deadline, and the hung lookup doesn't hold up later setups: they find the
-// credentials themselves. When the hung lookup returns, the reader stored first is kept.
+// newSecretSource rejects a bad name before creating a client, reads a regional secret
+// through its location's endpoint, and shares one client per endpoint.
+func TestNewSecretSource(t *testing.T) {
+	f := &fakeSecretManager{respond: func(name string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		return secretPayload("tok-" + name), nil
+	}}
+	c := fakeSecretManagerClient(t, f)
+	resetSecretClients(t)
+	origNew := newSecretManagerClient
+	t.Cleanup(func() { newSecretManagerClient = origNew })
+	var locations []string
+	newSecretManagerClient = func(_ context.Context, location string) (*secretmanager.Client, error) {
+		locations = append(locations, location) // the setups below run one at a time
+		return c, nil
+	}
+	for _, version := range []string{"v1", "projects/p/secrets/s", "projects/p/secrets/s/versions/1?x=y", "projects/p/secrets/../versions/1", "projects/../secrets/s/versions/1"} {
+		if _, err := newSecretSource(context.Background(), version); err == nil || !strings.Contains(err.Error(), "is not projects/P/secrets/S/versions/V") {
+			t.Errorf("%q: got %v, want a name error", version, err)
+		}
+	}
+	if len(locations) != 0 {
+		t.Errorf("clients created for bad names: %q", locations)
+	}
+	for _, version := range []string{
+		"projects/p/secrets/s/versions/latest",
+		"projects/example.com:p/locations/us-east1/secrets/s_2/versions/3",
+		"projects/p/secrets/t/versions/1",
+		"projects/p/locations/us-east1/secrets/u/versions/2",
+	} {
+		read, err := newSecretSource(context.Background(), version)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, err := read(context.Background()); err != nil || got != "tok-"+version {
+			t.Errorf("%s: got %q, %v", version, got, err)
+		}
+	}
+	if len(locations) != 2 || locations[0] != "" || locations[1] != "us-east1" {
+		t.Errorf("clients created for %q, want one global (\"\") and one for us-east1", locations)
+	}
+	if got, want := regionalEndpoint("us-east1"), "secretmanager.us-east1.rep.googleapis.com:443"; got != want {
+		t.Errorf("regional endpoint %q, want %q", got, want)
+	}
+}
+
+// A failed client creation fails setup with the reason and isn't kept, so the next setup
+// tries again. SecretVersion then reads through one shared client, and the payload is
+// trimmed.
+func TestSharedSecretClient(t *testing.T) {
+	c := fakeSecretManagerClient(t, &fakeSecretManager{respond: func(string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		return secretPayload("secret-token\n"), nil
+	}})
+	resetSecretClients(t)
+	origNew := newSecretManagerClient
+	t.Cleanup(func() { newSecretManagerClient = origNew })
+	created, fail := 0, true
+	newSecretManagerClient = func(context.Context, string) (*secretmanager.Client, error) {
+		created++ // the setups below run one at a time
+		if fail {
+			return nil, errors.New("could not find default credentials")
+		}
+		return c, nil
+	}
+	const version = "projects/p/secrets/valkey-token/versions/latest"
+	if _, err := newTokenAuthProvider(context.Background(), TokenAuthOptions{SecretVersion: version}); err == nil ||
+		!strings.Contains(err.Error(), "secret manager client: could not find default credentials") {
+		t.Fatalf("got %v, want the client creation error", err)
+	}
+	fail = false
+	for range 3 {
+		p, err := newTokenAuthProvider(context.Background(), TokenAuthOptions{SecretVersion: version})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := authOnce(t, p).Password; got != "secret-token" {
+			t.Fatalf("got %q, want the trimmed secret", got)
+		}
+	}
+	if created != 2 {
+		t.Fatalf("Secret Manager clients created = %d, want 2 (one failed, then one shared)", created)
+	}
+}
+
+// Creating the Secret Manager client, which finds the credentials, can hang and ignore ctx.
+// Setup still stops at NewClient's deadline, and the hung creation doesn't hold up later
+// setups: they create a client themselves. When the hung creation returns, the client
+// stored first is kept and the late one is closed.
 func TestTokenAuth_SecretManagerSetupBounded(t *testing.T) {
-	origNew, origSource := newSecretManagerReader, newSecretSource
-	secretMu.Lock()
-	origReader := secretReader
-	secretReader = nil
-	secretMu.Unlock()
+	late := fakeSecretManagerClient(t, &fakeSecretManager{respond: func(string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		return secretPayload("late"), nil
+	}})
+	kept := fakeSecretManagerClient(t, &fakeSecretManager{respond: func(string) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		return secretPayload("tok"), nil
+	}})
+	resetSecretClients(t)
+	origNew, origSource := newSecretManagerClient, newSecretSource
 	release, entered := make(chan struct{}), make(chan struct{})
 	abandoned := make(chan struct{}) // closed when the first setup's newSecretSource returns
 	t.Cleanup(func() {
@@ -816,15 +744,12 @@ func TestTokenAuth_SecretManagerSetupBounded(t *testing.T) {
 		default:
 			close(release)
 		}
-		// Let the abandoned setup finish, so it can't store its reader after the restore.
+		// Let the abandoned setup finish, so it can't store its client after the restore.
 		select {
 		case <-abandoned:
 		case <-time.After(5 * time.Second):
 		}
-		newSecretManagerReader, newSecretSource = origNew, origSource
-		secretMu.Lock()
-		secretReader = origReader
-		secretMu.Unlock()
+		newSecretManagerClient, newSecretSource = origNew, origSource
 	})
 	var sources atomic.Int32
 	newSecretSource = func(ctx context.Context, version string) (func(context.Context) (string, error), error) {
@@ -834,18 +759,18 @@ func TestTokenAuth_SecretManagerSetupBounded(t *testing.T) {
 		return origSource(ctx, version)
 	}
 	var created atomic.Int32
-	newSecretManagerReader = func(context.Context) (func(context.Context, string) (string, error), error) {
+	newSecretManagerClient = func(context.Context, string) (*secretmanager.Client, error) {
 		if created.Add(1) == 1 {
 			close(entered)
-			<-release // the first lookup hangs, whatever ctx says
-			return func(context.Context, string) (string, error) { return "late", nil }, nil
+			<-release // the first creation hangs, whatever ctx says
+			return late, nil
 		}
-		return func(context.Context, string) (string, error) { return "tok", nil }, nil
+		return kept, nil
 	}
 	const version = "projects/p/secrets/s/versions/1"
 
-	// The first setup stops at its deadline while its lookup hangs. It reports on a buffered
-	// channel, so a setup that outlives a failed test never blocks.
+	// The first setup stops at its deadline while its client creation hangs. It reports on
+	// a buffered channel, so a setup that outlives a failed test never blocks.
 	type result struct {
 		err  error
 		took time.Duration
@@ -867,37 +792,40 @@ func TestTokenAuth_SecretManagerSetupBounded(t *testing.T) {
 			t.Errorf("setup took %v despite a 50ms deadline", r.took)
 		}
 	case <-time.After(5 * time.Second):
-		t.Fatal("setup didn't stop at its deadline while finding the credentials hung")
+		t.Fatal("setup didn't stop at its deadline while creating the client hung")
 	}
 
-	// A later setup doesn't wait for the hung lookup: it finds the credentials itself.
-	<-entered // the first lookup is underway, so this setup is the second one
+	// A later setup doesn't wait for the hung creation: it creates a client itself.
+	<-entered // the first creation is underway, so this setup is the second one
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	p, err := newTokenAuthProvider(ctx, TokenAuthOptions{SecretVersion: version})
 	if err != nil {
-		t.Fatalf("setup while another lookup hangs: %v", err)
+		t.Fatalf("setup while another creation hangs: %v", err)
 	}
 	if got := authOnce(t, p).Password; got != "tok" {
 		t.Fatalf("got %q", got)
 	}
 
-	// The hung lookup returns, and the reader stored first is kept.
+	// The hung creation returns: the client stored first is kept, and the late one closed.
 	close(release)
 	select {
-	case <-abandoned: // the abandoned setup has tried to store its reader
+	case <-abandoned: // the abandoned setup has tried to store its client
 	case <-time.After(5 * time.Second):
-		t.Fatal("the abandoned setup didn't return after its lookup did")
+		t.Fatal("the abandoned setup didn't return after its client creation did")
 	}
 	p, err = newTokenAuthProvider(context.Background(), TokenAuthOptions{SecretVersion: version})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := authOnce(t, p).Password; got != "tok" {
-		t.Errorf("got %q, want the token from the reader stored first", got)
+		t.Errorf("got %q, want the token from the client stored first", got)
+	}
+	if _, err := accessSecretVersion(context.Background(), late, version); err == nil {
+		t.Error("the late client is still open")
 	}
 	if n := created.Load(); n != 2 {
-		t.Errorf("readers created = %d, want 2: the hung one and the later setup's", n)
+		t.Errorf("clients created = %d, want 2: the hung one and the later setup's", n)
 	}
 }
 
