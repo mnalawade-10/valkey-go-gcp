@@ -1,0 +1,91 @@
+                                                           │ go-redis-autopipeline.txt │    go-redis-autopipeline+tls.txt    │
+                                                           │           req/s           │    req/s     vs base                │
+Latency/mode=standalone/size=100/load=mix/inflight=1                       9.688k ± 3%   7.975k ± 4%  -17.69% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10                      59.94k ± 3%   52.35k ± 3%  -12.66% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100                     202.6k ± 5%   190.0k ± 9%   -6.23% (p=0.003 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000                    447.3k ± 6%   419.4k ± 6%   -6.24% (p=0.015 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1                  11.788k ± 2%   9.837k ± 2%  -16.55% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10                  38.42k ± 3%   29.03k ± 2%  -24.45% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100                 39.87k ± 1%   29.45k ± 8%  -26.13% (p=0.000 n=10)
+geomean                                                                    51.42k        43.18k       -16.03%
+
+                                                           │ go-redis-autopipeline.txt │    go-redis-autopipeline+tls.txt    │
+                                                           │          p50-us           │   p50-us     vs base                │
+Latency/mode=standalone/size=100/load=mix/inflight=1                        94.00 ± 2%   116.00 ± 4%  +23.40% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10                       155.0 ± 3%    179.0 ± 1%  +15.48% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100                      481.5 ± 4%    514.0 ± 8%   +6.75% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000                    2.228k ± 7%   2.409k ± 9%   +8.12% (p=0.037 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1                    78.00 ± 1%    95.00 ± 1%  +21.79% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10                   254.0 ± 2%    341.5 ± 1%  +34.45% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100                 2.393k ± 1%   3.242k ± 4%  +35.48% (p=0.000 n=10)
+geomean                                                                     357.1         429.7       +20.31%
+
+                                                           │ go-redis-autopipeline.txt │    go-redis-autopipeline+tls.txt     │
+                                                           │          p99-us           │    p99-us     vs base                │
+Latency/mode=standalone/size=100/load=mix/inflight=1                       211.0 ±  9%    257.0 ±  7%  +21.80% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10                      355.5 ±  4%    402.5 ±  9%  +13.22% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100                     769.0 ± 29%    826.0 ± 28%        ~ (p=0.072 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000                   3.628k ± 22%   3.793k ± 23%        ~ (p=0.280 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1                   172.5 ±  5%    196.5 ± 24%  +13.91% (p=0.001 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10                  556.5 ± 11%    628.0 ±  7%  +12.85% (p=0.001 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100                4.779k ±  1%   6.435k ±  6%  +34.65% (p=0.000 n=10)
+geomean                                                                    715.5          823.7        +15.13%
+
+                                                           │ go-redis-autopipeline.txt │     go-redis-autopipeline+tls.txt     │
+                                                           │          p999-us          │    p999-us     vs base                │
+Latency/mode=standalone/size=100/load=mix/inflight=1                       405.5 ±  9%    467.0 ± 132%  +15.17% (p=0.001 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10                      802.0 ±  9%    860.0 ±  52%   +7.23% (p=0.029 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100                    1.595k ± 15%   1.579k ±  19%        ~ (p=0.617 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000                   5.473k ± 19%   5.503k ±  12%        ~ (p=0.912 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1                   397.5 ±  8%    440.5 ±  11%  +10.82% (p=0.002 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10                  969.5 ± 32%    973.5 ±  14%        ~ (p=0.671 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100                5.537k ±  4%   7.429k ±  17%  +34.17% (p=0.000 n=10)
+geomean                                                                   1.294k         1.411k          +9.06%
+
+                                                           │ go-redis-autopipeline.txt │    go-redis-autopipeline+tls.txt    │
+                                                           │        cpu-us/req         │ cpu-us/req   vs base                │
+Latency/mode=standalone/size=100/load=mix/inflight=1                        106.7 ± 3%   113.4 ±  3%   +6.24% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10                       21.11 ± 2%   21.80 ±  1%   +3.29% (p=0.001 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100                      8.245 ± 5%   8.155 ±  3%        ~ (p=0.697 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000                     6.805 ± 4%   6.990 ±  3%        ~ (p=0.060 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1                    64.84 ± 8%   73.41 ±  3%  +13.20% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10                   80.33 ± 2%   84.89 ±  3%   +5.68% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100                  83.94 ± 3%   83.62 ± 10%        ~ (p=0.796 n=10)
+geomean                                                                     34.25        35.67         +4.14%
+
+                                                           │ go-redis-autopipeline.txt │   go-redis-autopipeline+tls.txt   │
+                                                           │          rss-MiB          │  rss-MiB    vs base               │
+Latency/mode=standalone/size=100/load=mix/inflight=1                        28.75 ± 5%   29.45 ± 4%       ~ (p=0.085 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10                       32.40 ± 4%   33.35 ± 5%       ~ (p=0.183 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100                      58.25 ± 2%   59.75 ± 3%  +2.58% (p=0.016 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000                     307.2 ± 1%   311.2 ± 1%  +1.30% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1                    27.70 ± 6%   28.35 ± 7%       ~ (p=0.128 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10                   35.30 ± 3%   36.80 ± 3%  +4.25% (p=0.015 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100                  73.95 ± 3%   78.40 ± 1%  +6.02% (p=0.000 n=10)
+geomean                                                                     53.19        54.85       +3.11%
+
+                                                           │ go-redis-autopipeline.txt │     go-redis-autopipeline+tls.txt      │
+                                                           │       cache-hit-pct       │ cache-hit-pct  vs base                 │
+Latency/mode=standalone/size=100/load=mix/inflight=1                      0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=10                     0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=100                    0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=1000                   0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=1                  0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=10                 0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=100                0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                              ²                  +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                           │ go-redis-autopipeline.txt │    go-redis-autopipeline+tls.txt    │
+                                                           │          errors           │   errors    vs base                 │
+Latency/mode=standalone/size=100/load=mix/inflight=1                      0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=10                     0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=100                    0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=1000                   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=1                  0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=10                 0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=100                0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                              ²               +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

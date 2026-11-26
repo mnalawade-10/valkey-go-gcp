@@ -1,0 +1,15 @@
+# Per-thread CPU of the latency tool while GLIDE kept 100 requests in flight (top -H, 2-second sample, Nov 26, 2026).
+# The busiest thread is GLIDE's own ("Valkey-GLIDE th..." / "Valkey-+"), at about one full core; the Go threads ("latency+") are mostly idle.
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+1233767 user      20   0 2475128  65032  20524 R  98.0   0.1   0:09.08 Valkey-+
+1233773 user      20   0 2475128  65032  20524 R  33.5   0.1   0:03.08 glide-t+
+1233768 user      20   0 2475128  65032  20524 S  10.5   0.1   0:00.59 latency+
+1233775 user      20   0 2475128  65032  20524 S  10.5   0.1   0:00.78 latency+
+1233771 user      20   0 2475128  65032  20524 S   8.5   0.1   0:00.77 latency+
+1233774 user      20   0 2475128  65032  20524 S   8.5   0.1   0:00.60 latency+
+1233760 user      20   0 2475128  65032  20524 R   8.0   0.1   0:00.60 latency+
+1233763 user      20   0 2475128  65032  20524 S   7.5   0.1   0:00.74 latency+
+1233764 user      20   0 2475128  65032  20524 S   6.5   0.1   0:00.48 latency+
+1233762 user      20   0 2475128  65032  20524 S   3.0   0.1   0:00.26 latency+
+1233770 user      20   0 2475128  65032  20524 S   3.0   0.1   0:00.36 latency+
+# Thread names in full (/proc/<pid>/task/*/comm, CPU ticks over about 4 s): "Valkey-GLIDE th" 402, "glide-timeout-w" 139, the busiest Go thread 46.

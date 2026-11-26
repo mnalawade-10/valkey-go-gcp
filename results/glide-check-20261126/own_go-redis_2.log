@@ -1,0 +1,120 @@
+Running benchmarking for go-redis client:
+
+ =====> go-redis <===== clientCount: 1, concurrentTasks: 1, dataSize: 100 
+
+Runtime (sec): 0.095
+Iterations: 1000
+TPS: 10513
+===> get_existing <===
+avg. latency (ms): 0.085
+std dev (ms): 0.025
+p50 latency (ms): 0.078
+p90 latency (ms): 0.109
+p99 latency (ms): 0.169
+Number of requests: 667
+===> get_non_existing <===
+avg. latency (ms): 0.094
+std dev (ms): 0.034
+p50 latency (ms): 0.084
+p90 latency (ms): 0.125
+p99 latency (ms): 0.199
+Number of requests: 151
+===> set <===
+avg. latency (ms): 0.093
+std dev (ms): 0.036
+p50 latency (ms): 0.084
+p90 latency (ms): 0.121
+p99 latency (ms): 0.254
+Number of requests: 182
+Total requests: 1000
+
+Running benchmarking for go-redis client:
+
+ =====> go-redis <===== clientCount: 1, concurrentTasks: 10, dataSize: 100 
+
+Runtime (sec): 0.193
+Iterations: 1000
+TPS: 51830
+===> get_existing <===
+avg. latency (ms): 0.186
+std dev (ms): 0.082
+p50 latency (ms): 0.177
+p90 latency (ms): 0.239
+p99 latency (ms): 0.424
+Number of requests: 6393
+===> get_non_existing <===
+avg. latency (ms): 0.194
+std dev (ms): 0.110
+p50 latency (ms): 0.182
+p90 latency (ms): 0.247
+p99 latency (ms): 0.449
+Number of requests: 1597
+===> set <===
+avg. latency (ms): 0.188
+std dev (ms): 0.109
+p50 latency (ms): 0.179
+p90 latency (ms): 0.240
+p99 latency (ms): 0.356
+Number of requests: 2010
+Total requests: 10000
+
+Running benchmarking for go-redis client:
+
+ =====> go-redis <===== clientCount: 1, concurrentTasks: 100, dataSize: 100 
+
+Runtime (sec): 1.856
+Iterations: 1000
+TPS: 53884
+===> get_existing <===
+avg. latency (ms): 1.838
+std dev (ms): 0.395
+p50 latency (ms): 1.762
+p90 latency (ms): 2.006
+p99 latency (ms): 3.527
+Number of requests: 63984
+===> get_non_existing <===
+avg. latency (ms): 1.847
+std dev (ms): 0.413
+p50 latency (ms): 1.769
+p90 latency (ms): 2.008
+p99 latency (ms): 3.539
+Number of requests: 15930
+===> set <===
+avg. latency (ms): 1.841
+std dev (ms): 0.432
+p50 latency (ms): 1.762
+p90 latency (ms): 2.019
+p99 latency (ms): 3.534
+Number of requests: 20086
+Total requests: 100000
+
+Running benchmarking for go-redis client:
+
+ =====> go-redis <===== clientCount: 1, concurrentTasks: 1000, dataSize: 100 
+
+Runtime (sec): 18.977
+Iterations: 1000
+TPS: 52695
+===> get_non_existing <===
+avg. latency (ms): 18.932
+std dev (ms): 1.490
+p50 latency (ms): 18.632
+p90 latency (ms): 20.583
+p99 latency (ms): 24.327
+Number of requests: 159845
+===> set <===
+avg. latency (ms): 18.928
+std dev (ms): 1.487
+p50 latency (ms): 18.625
+p90 latency (ms): 20.579
+p99 latency (ms): 24.251
+Number of requests: 199584
+===> get_existing <===
+avg. latency (ms): 18.934
+std dev (ms): 1.500
+p50 latency (ms): 18.632
+p90 latency (ms): 20.589
+p99 latency (ms): 24.287
+Number of requests: 640571
+Total requests: 1000000
+

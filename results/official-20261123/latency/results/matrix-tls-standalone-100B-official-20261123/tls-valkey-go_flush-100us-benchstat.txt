@@ -1,0 +1,91 @@
+                                                           │ valkey-go_flush-100us.txt │    valkey-go_flush-100us+tls.txt     │
+                                                           │           req/s           │    req/s      vs base                │
+Latency/mode=standalone/size=100/load=mix/inflight=1                       15.43k ± 3%   12.59k ±  2%  -18.43% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10                      60.57k ± 1%   49.14k ±  1%  -18.87% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100                     412.7k ± 3%   210.1k ±  7%  -49.09% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000                    973.0k ± 1%   218.6k ± 10%  -77.53% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1                   13.18k ± 3%   10.59k ±  2%  -19.63% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10                  44.67k ± 2%   34.56k ±  2%  -22.63% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100                107.97k ± 1%   45.15k ±  4%  -58.18% (p=0.000 n=10)
+geomean                                                                    81.49k        46.50k        -42.94%
+
+                                                           │ valkey-go_flush-100us.txt │     valkey-go_flush-100us+tls.txt     │
+                                                           │          p50-us           │    p50-us     vs base                 │
+Latency/mode=standalone/size=100/load=mix/inflight=1                        62.00 ± 2%    75.00 ±  1%   +20.97% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10                       158.0 ± 1%    197.5 ±  1%   +25.00% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100                      233.5 ± 1%    430.5 ±  4%   +84.37% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000                    1.047k ± 1%   4.355k ± 19%  +315.95% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1                    72.00 ± 1%    90.00 ±  1%   +25.00% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10                   215.0 ± 1%    280.5 ±  2%   +30.47% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100                  940.5 ± 2%   1993.0 ±  7%  +111.91% (p=0.000 n=10)
+geomean                                                                     230.8         391.0         +69.43%
+
+                                                           │ valkey-go_flush-100us.txt │     valkey-go_flush-100us+tls.txt     │
+                                                           │          p99-us           │    p99-us     vs base                 │
+Latency/mode=standalone/size=100/load=mix/inflight=1                       106.5 ±  4%    131.0 ± 14%   +23.00% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10                      321.0 ±  3%    376.5 ±  4%   +17.29% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100                     463.5 ±  8%   1123.0 ± 15%  +142.29% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000                   1.794k ±  5%   9.999k ± 19%  +457.20% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1                   132.5 ± 22%    171.5 ±  6%   +29.43% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10                  442.0 ±  7%    537.5 ±  7%   +21.61% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100                1.677k ±  3%   5.765k ± 10%  +243.87% (p=0.000 n=10)
+geomean                                                                    431.6          839.7         +94.53%
+
+                                                           │ valkey-go_flush-100us.txt │     valkey-go_flush-100us+tls.txt      │
+                                                           │          p999-us          │    p999-us     vs base                 │
+Latency/mode=standalone/size=100/load=mix/inflight=1                       228.0 ±  7%     269.5 ±  9%   +18.20% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10                     1334.0 ±  1%     550.5 ± 14%   -58.73% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100                     718.0 ±  7%    1642.0 ± 13%  +128.69% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000                   2.802k ±  6%   11.911k ± 27%  +325.09% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1                   272.0 ± 44%     334.0 ±  4%   +22.79% (p=0.022 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10                  706.0 ± 48%     795.5 ±  6%   +12.68% (p=0.023 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100                2.237k ±  3%    6.773k ± 16%  +202.77% (p=0.000 n=10)
+geomean                                                                    826.2          1.266k         +53.26%
+
+                                                           │ valkey-go_flush-100us.txt │    valkey-go_flush-100us+tls.txt     │
+                                                           │        cpu-us/req         │ cpu-us/req   vs base                 │
+Latency/mode=standalone/size=100/load=mix/inflight=1                        47.45 ± 3%    49.98 ± 1%    +5.35% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10                       36.27 ± 3%    44.81 ± 1%   +23.58% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100                      8.805 ± 3%   14.385 ± 5%   +63.37% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000                     5.510 ± 3%   14.815 ± 4%  +168.87% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1                    52.90 ± 4%    62.48 ± 2%   +18.12% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10                   55.08 ± 2%    67.89 ± 3%   +23.28% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100                  23.41 ± 2%    55.63 ± 4%  +137.58% (p=0.000 n=10)
+geomean                                                                     24.75         37.92        +53.18%
+
+                                                           │ valkey-go_flush-100us.txt │   valkey-go_flush-100us+tls.txt    │
+                                                           │          rss-MiB          │  rss-MiB    vs base                │
+Latency/mode=standalone/size=100/load=mix/inflight=1                        35.55 ± 3%   35.30 ± 6%        ~ (p=0.269 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10                       41.10 ± 3%   41.60 ± 3%        ~ (p=0.223 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100                      67.55 ± 1%   68.35 ± 1%        ~ (p=0.065 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000                     315.7 ± 1%   274.1 ± 4%  -13.16% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1                    36.45 ± 5%   36.55 ± 3%        ~ (p=0.138 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10                   39.65 ± 4%   41.15 ± 3%   +3.78% (p=0.017 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100                  67.15 ± 2%   67.60 ± 1%        ~ (p=0.224 n=10)
+geomean                                                                     60.67        59.99        -1.10%
+
+                                                           │ valkey-go_flush-100us.txt │     valkey-go_flush-100us+tls.txt      │
+                                                           │       cache-hit-pct       │ cache-hit-pct  vs base                 │
+Latency/mode=standalone/size=100/load=mix/inflight=1                      0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=10                     0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=100                    0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=1000                   0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=1                  0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=10                 0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=100                0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                              ²                  +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                           │ valkey-go_flush-100us.txt │    valkey-go_flush-100us+tls.txt    │
+                                                           │          errors           │   errors    vs base                 │
+Latency/mode=standalone/size=100/load=mix/inflight=1                      0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=10                     0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=100                    0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=1000                   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=1                  0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=10                 0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=100                0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                              ²               +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

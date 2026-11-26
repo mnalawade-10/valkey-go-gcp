@@ -1,0 +1,105 @@
+                                                         │ valkey-go.txt │
+                                                         │     req/s     │
+Latency/mode=standalone/size=100/load=hot50/inflight=1       15.43k ± 1%
+Latency/mode=standalone/size=100/load=hot50/inflight=10      74.16k ± 1%
+Latency/mode=standalone/size=100/load=hot50/inflight=100     348.4k ± 1%
+Latency/mode=standalone/size=100/load=hot90/inflight=1       15.66k ± 6%
+Latency/mode=standalone/size=100/load=hot90/inflight=10      74.07k ± 2%
+Latency/mode=standalone/size=100/load=hot90/inflight=100     346.1k ± 2%
+Latency/mode=standalone/size=100/load=hot99/inflight=1       15.54k ± 4%
+Latency/mode=standalone/size=100/load=hot99/inflight=10      74.32k ± 1%
+Latency/mode=standalone/size=100/load=hot99/inflight=100     346.7k ± 2%
+geomean                                                      73.69k
+
+                                                         │ valkey-go.txt │
+                                                         │    p50-us     │
+Latency/mode=standalone/size=100/load=hot50/inflight=1        61.00 ± 2%
+Latency/mode=standalone/size=100/load=hot50/inflight=10       130.0 ± 1%
+Latency/mode=standalone/size=100/load=hot50/inflight=100      281.0 ± 1%
+Latency/mode=standalone/size=100/load=hot90/inflight=1        61.50 ± 2%
+Latency/mode=standalone/size=100/load=hot90/inflight=10       130.0 ± 2%
+Latency/mode=standalone/size=100/load=hot90/inflight=100      283.0 ± 1%
+Latency/mode=standalone/size=100/load=hot99/inflight=1        61.50 ± 2%
+Latency/mode=standalone/size=100/load=hot99/inflight=10       129.5 ± 1%
+Latency/mode=standalone/size=100/load=hot99/inflight=100      281.0 ± 1%
+geomean                                                       130.9
+
+                                                         │ valkey-go.txt │
+                                                         │    p99-us     │
+Latency/mode=standalone/size=100/load=hot50/inflight=1       103.5 ± 14%
+Latency/mode=standalone/size=100/load=hot50/inflight=10      248.5 ±  2%
+Latency/mode=standalone/size=100/load=hot50/inflight=100     538.5 ±  5%
+Latency/mode=standalone/size=100/load=hot90/inflight=1       104.5 ± 11%
+Latency/mode=standalone/size=100/load=hot90/inflight=10      251.0 ±  4%
+Latency/mode=standalone/size=100/load=hot90/inflight=100     544.5 ±  6%
+Latency/mode=standalone/size=100/load=hot99/inflight=1       104.0 ±  4%
+Latency/mode=standalone/size=100/load=hot99/inflight=10      249.0 ±  1%
+Latency/mode=standalone/size=100/load=hot99/inflight=100     558.5 ±  7%
+geomean                                                      242.1
+
+                                                         │ valkey-go.txt │
+                                                         │    p999-us    │
+Latency/mode=standalone/size=100/load=hot50/inflight=1       292.0 ± 18%
+Latency/mode=standalone/size=100/load=hot50/inflight=10      471.0 ±  2%
+Latency/mode=standalone/size=100/load=hot50/inflight=100     853.5 ±  5%
+Latency/mode=standalone/size=100/load=hot90/inflight=1       320.0 ± 15%
+Latency/mode=standalone/size=100/load=hot90/inflight=10      475.5 ±  3%
+Latency/mode=standalone/size=100/load=hot90/inflight=100     896.0 ±  4%
+Latency/mode=standalone/size=100/load=hot99/inflight=1       305.0 ±  8%
+Latency/mode=standalone/size=100/load=hot99/inflight=10      480.5 ±  2%
+Latency/mode=standalone/size=100/load=hot99/inflight=100     941.0 ±  5%
+geomean                                                      506.8
+
+                                                         │ valkey-go.txt │
+                                                         │  cpu-us/req   │
+Latency/mode=standalone/size=100/load=hot50/inflight=1        46.30 ± 3%
+Latency/mode=standalone/size=100/load=hot50/inflight=10       43.42 ± 1%
+Latency/mode=standalone/size=100/load=hot50/inflight=100      15.43 ± 1%
+Latency/mode=standalone/size=100/load=hot90/inflight=1        46.29 ± 6%
+Latency/mode=standalone/size=100/load=hot90/inflight=10       43.58 ± 1%
+Latency/mode=standalone/size=100/load=hot90/inflight=100      15.55 ± 2%
+Latency/mode=standalone/size=100/load=hot99/inflight=1        46.45 ± 2%
+Latency/mode=standalone/size=100/load=hot99/inflight=10       43.67 ± 1%
+Latency/mode=standalone/size=100/load=hot99/inflight=100      15.61 ± 2%
+geomean                                                       31.53
+
+                                                         │ valkey-go.txt │
+                                                         │    rss-MiB    │
+Latency/mode=standalone/size=100/load=hot50/inflight=1        34.70 ± 6%
+Latency/mode=standalone/size=100/load=hot50/inflight=10       40.05 ± 3%
+Latency/mode=standalone/size=100/load=hot50/inflight=100      66.65 ± 2%
+Latency/mode=standalone/size=100/load=hot90/inflight=1        34.70 ± 5%
+Latency/mode=standalone/size=100/load=hot90/inflight=10       40.60 ± 2%
+Latency/mode=standalone/size=100/load=hot90/inflight=100      66.45 ± 2%
+Latency/mode=standalone/size=100/load=hot99/inflight=1        34.75 ± 6%
+Latency/mode=standalone/size=100/load=hot99/inflight=10       39.80 ± 2%
+Latency/mode=standalone/size=100/load=hot99/inflight=100      65.25 ± 2%
+geomean                                                       45.17
+
+                                                         │ valkey-go.txt │
+                                                         │ cache-hit-pct │
+Latency/mode=standalone/size=100/load=hot50/inflight=1      0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot50/inflight=10     0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot50/inflight=100    0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot90/inflight=1      0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot90/inflight=10     0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot90/inflight=100    0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot99/inflight=1      0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot99/inflight=10     0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot99/inflight=100    0.000 ± 0%
+geomean                                                                ¹
+¹ summaries must be >0 to compute geomean
+
+                                                         │ valkey-go.txt │
+                                                         │    errors     │
+Latency/mode=standalone/size=100/load=hot50/inflight=1      0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot50/inflight=10     0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot50/inflight=100    0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot90/inflight=1      0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot90/inflight=10     0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot90/inflight=100    0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot99/inflight=1      0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot99/inflight=10     0.000 ± 0%
+Latency/mode=standalone/size=100/load=hot99/inflight=100    0.000 ± 0%
+geomean                                                                ¹
+¹ summaries must be >0 to compute geomean

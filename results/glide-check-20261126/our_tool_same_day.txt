@@ -1,0 +1,13 @@
+mode=standalone fixed concurrency, workload=GLIDE mix (80% GET, 20% SET) value=100 B keys=100000 warm-up=1s measured=5s per level
+Latency = from the call to the reply, per request (a batch is one request). Client CPU per request includes the load generator's own small, equal overhead.
+
+| Client | In flight | Requests/s | p50 (ms) | p90 (ms) | p99 (ms) | p99.9 (ms) | max (ms) | Client CPU per request (µs) | Client RSS (MiB) | Errors |
+| :--- | :- | :- | :- | :- | :- | :- | :- | :- | :- | :- |
+| go-redis | 1 | 13089 | 0.070 | 0.087 | 0.157 | 0.415 | 1.735 | 59.3 | 29 | 0 |
+| go-redis | 10 | 48573 | 0.200 | 0.277 | 0.408 | 0.773 | 3.497 | 68.1 | 32 | 0 |
+| go-redis | 100 | 49630 | 1.909 | 2.347 | 3.809 | 4.731 | 7.655 | 79.5 | 69 | 0 |
+| go-redis | 1000 | 49817 | 19.743 | 21.903 | 26.207 | 30.383 | 34.271 | 89.7 | 260 | 0 |
+| glide | 1 | 6141 | 0.141 | 0.227 | 0.473 | 1.368 | 2.455 | 141.0 | 271 | 0 |
+| glide | 10 | 31226 | 0.306 | 0.413 | 0.595 | 1.134 | 3.533 | 60.5 | 324 | 0 |
+| glide | 100 | 33684 | 3.023 | 3.585 | 4.647 | 5.467 | 7.911 | 60.5 | 75 | 0 |
+| glide | 1000 | 32304 | 30.655 | 34.815 | 39.295 | 44.287 | 70.847 | 64.0 | 225 | 0 |

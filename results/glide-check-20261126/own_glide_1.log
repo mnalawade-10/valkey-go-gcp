@@ -1,0 +1,120 @@
+Running benchmarking for glide client:
+
+ =====> glide <===== clientCount: 1, concurrentTasks: 1, dataSize: 100 
+
+Runtime (sec): 0.175
+Iterations: 1000
+TPS: 5728
+===> get_existing <===
+avg. latency (ms): 0.166
+std dev (ms): 0.089
+p50 latency (ms): 0.147
+p90 latency (ms): 0.224
+p99 latency (ms): 0.429
+Number of requests: 633
+===> get_non_existing <===
+avg. latency (ms): 0.168
+std dev (ms): 0.081
+p50 latency (ms): 0.145
+p90 latency (ms): 0.252
+p99 latency (ms): 0.510
+Number of requests: 165
+===> set <===
+avg. latency (ms): 0.189
+std dev (ms): 0.165
+p50 latency (ms): 0.157
+p90 latency (ms): 0.264
+p99 latency (ms): 0.597
+Number of requests: 202
+Total requests: 1000
+
+Running benchmarking for glide client:
+
+ =====> glide <===== clientCount: 1, concurrentTasks: 10, dataSize: 100 
+
+Runtime (sec): 0.350
+Iterations: 1000
+TPS: 28585
+===> get_non_existing <===
+avg. latency (ms): 0.346
+std dev (ms): 0.088
+p50 latency (ms): 0.337
+p90 latency (ms): 0.447
+p99 latency (ms): 0.608
+Number of requests: 1620
+===> set <===
+avg. latency (ms): 0.346
+std dev (ms): 0.085
+p50 latency (ms): 0.339
+p90 latency (ms): 0.442
+p99 latency (ms): 0.602
+Number of requests: 2050
+===> get_existing <===
+avg. latency (ms): 0.346
+std dev (ms): 0.087
+p50 latency (ms): 0.336
+p90 latency (ms): 0.444
+p99 latency (ms): 0.613
+Number of requests: 6330
+Total requests: 10000
+
+Running benchmarking for glide client:
+
+ =====> glide <===== clientCount: 1, concurrentTasks: 100, dataSize: 100 
+
+Runtime (sec): 2.860
+Iterations: 1000
+TPS: 34968
+===> get_existing <===
+avg. latency (ms): 2.847
+std dev (ms): 0.636
+p50 latency (ms): 2.879
+p90 latency (ms): 3.354
+p99 latency (ms): 4.635
+Number of requests: 64000
+===> get_non_existing <===
+avg. latency (ms): 2.853
+std dev (ms): 0.652
+p50 latency (ms): 2.880
+p90 latency (ms): 3.378
+p99 latency (ms): 4.732
+Number of requests: 15935
+===> set <===
+avg. latency (ms): 2.838
+std dev (ms): 0.634
+p50 latency (ms): 2.877
+p90 latency (ms): 3.351
+p99 latency (ms): 4.565
+Number of requests: 20065
+Total requests: 100000
+
+Running benchmarking for glide client:
+
+ =====> glide <===== clientCount: 1, concurrentTasks: 1000, dataSize: 100 
+
+Runtime (sec): 28.918
+Iterations: 1000
+TPS: 34580
+===> set <===
+avg. latency (ms): 28.883
+std dev (ms): 3.455
+p50 latency (ms): 28.418
+p90 latency (ms): 32.897
+p99 latency (ms): 39.602
+Number of requests: 200482
+===> get_existing <===
+avg. latency (ms): 28.889
+std dev (ms): 3.462
+p50 latency (ms): 28.421
+p90 latency (ms): 32.927
+p99 latency (ms): 39.659
+Number of requests: 639366
+===> get_non_existing <===
+avg. latency (ms): 28.898
+std dev (ms): 3.486
+p50 latency (ms): 28.422
+p90 latency (ms): 32.977
+p99 latency (ms): 39.650
+Number of requests: 160152
+Total requests: 1000000
+

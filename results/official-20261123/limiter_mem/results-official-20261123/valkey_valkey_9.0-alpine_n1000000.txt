@@ -1,0 +1,23 @@
+server: redis_version:7.2.4
+server: valkey_version:9.0.8
+measuring valkeylimiter fixed window with 1000000 identifiers...
+  used_memory 1201256 -> 209006120, keys 0 -> 2000000, sample: valkeylimiter:{user:500000}=56B (value "1", int, ttl 86393s); valkeylimiter:{user:500000}:ex=64B (value "1795496150466", int, ttl 86393s)
+measuring valkeylimiter GCRA with 1000000 identifiers...
+  used_memory 1403552 -> 133468952, keys 0 -> 1000000, sample: valkeylimiter:gcra:{user:500000}=88B (value "312189612.950378", raw, ttl 8632s)
+measuring valkeylimiter fixed window (prefix rl) with 1000000 identifiers...
+  used_memory 1410424 -> 185904784, keys 0 -> 2000000, sample: rl:{user:500000}=48B (value "1", int, ttl 86393s); rl:{user:500000}:ex=48B (value "1795496195743", int, ttl 86393s)
+measuring valkeylimiter GCRA (prefix rl) with 1000000 identifiers...
+  used_memory 1416944 -> 117489728, keys 0 -> 1000000, sample: rl:gcra:{user:500000}=72B (value "312189658.387329", raw, ttl 8632s)
+measuring valkeycompatrate (GCRA) with 1000000 identifiers...
+  used_memory 1423608 -> 109632496, keys 0 -> 1000000, sample: rate:user:500000=64B (value "312189680.939318", embstr, ttl 8632s)
+measuring go-redis redis_rate v10 (GCRA) with 1000000 identifiers...
+  used_memory 2484304 -> 109636584, keys 0 -> 1000000, sample: rate:user:500000=64B (value "312189711.237181", embstr, ttl 8624s)
+
+| Limiter | Keys per identifier | Bytes per identifier (used_memory) | vs valkeylimiter fixed window | MEMORY USAGE, one identifier | Allow p50 | Allow p99 | Allow/s (64 goroutines) |
+| :--- | :- | :- | :- | :- | :- | :- | :- |
+| valkeylimiter fixed window | 2.00 | 208 | +0% | 120 B | 89µs | 171µs | 104071 |
+| valkeylimiter GCRA | 1.00 | 132 | -36% | 88 B | 106µs | 198µs | 66582 |
+| valkeylimiter fixed window (prefix rl) | 2.00 | 184 | -11% | 96 B | 90µs | 164µs | 100160 |
+| valkeylimiter GCRA (prefix rl) | 1.00 | 116 | -44% | 72 B | 107µs | 206µs | 69078 |
+| valkeycompatrate (GCRA) | 1.00 | 108 | -48% | 64 B | 110µs | 201µs | 70507 |
+| go-redis redis_rate v10 (GCRA) | 1.00 | 107 | -48% | 64 B | 97µs | 169µs | 32527 |

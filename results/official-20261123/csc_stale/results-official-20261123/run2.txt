@@ -1,0 +1,9 @@
+keys=100 writes=1000/s (each key every 100ms) readers=8 duration=10s cache TTL=1m0s
+
+| Client | Reads/s | Read p50 / p99 | Reads that reached the server | Stale reads | Stale for: p50 / p99 / max |
+| :--- | :- | :- | :- | :- | :- |
+| valkey-go (no cache) | 63709 | 118.9µs / 235.9µs | 100.00% | 0.00% | none |
+| valkey-go DoCache | 7216177 | 700ns / 1.6µs | 0.01% | 0.02% | 12µs / 279µs / 1ms |
+| go-redis CSC | 4509394 | 1.4µs / 3.4µs | 0.02% | 2.29% | 1.434ms / 4.963ms / 11ms |
+| GLIDE cache (time-based) | 89708 | 81.8µs / 223.5µs | 0.00% | 99.50% | 5.185812s / 9.858378s / 9.998s |
+| GLIDE cache (server-assisted) | 92232 | 77.6µs / 250.6µs | 1.28% | 0.09% | 96µs / 422µs / 1ms |

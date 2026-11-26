@@ -1,0 +1,91 @@
+                                                           │ go-redis.txt │          go-redis+tls.txt           │
+                                                           │    req/s     │    req/s     vs base                │
+Latency/mode=standalone/size=100/load=mix/inflight=1          14.28k ± 3%   12.16k ± 5%  -14.81% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10         52.11k ± 2%   37.20k ± 2%  -28.62% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100        53.16k ± 2%   37.68k ± 2%  -29.11% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000       52.86k ± 7%   37.32k ± 2%  -29.40% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1     11.899k ± 3%   9.909k ± 2%  -16.72% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10     38.46k ± 1%   29.12k ± 0%  -24.28% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100    39.77k ± 1%   29.75k ± 2%  -25.19% (p=0.000 n=10)
+geomean                                                       32.47k        24.61k       -24.21%
+
+                                                           │ go-redis.txt │          go-redis+tls.txt           │
+                                                           │    p50-us    │   p50-us     vs base                │
+Latency/mode=standalone/size=100/load=mix/inflight=1           66.50 ± 2%    78.00 ± 1%  +17.29% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10          190.5 ± 2%    266.5 ± 1%  +39.90% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100        1.810k ± 2%   2.547k ± 2%  +40.76% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000       18.77k ± 3%   26.59k ± 2%  +41.63% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1       77.50 ± 1%    94.50 ± 1%  +21.94% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10      253.0 ± 1%    341.0 ± 1%  +34.78% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100    2.401k ± 2%   3.209k ± 2%  +33.65% (p=0.000 n=10)
+geomean                                                        572.9         759.4       +32.54%
+
+                                                           │ go-redis.txt │           go-redis+tls.txt           │
+                                                           │    p99-us    │    p99-us     vs base                │
+Latency/mode=standalone/size=100/load=mix/inflight=1          120.5 ±  8%    137.5 ± 27%  +14.11% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10         342.0 ± 18%    449.5 ± 11%  +31.43% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100       3.599k ±  1%   5.059k ±  2%  +40.57% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000      23.18k ± 26%   32.58k ±  6%  +40.56% (p=0.001 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1      165.5 ± 12%    196.5 ± 13%  +18.73% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10     551.5 ±  4%    627.0 ±  3%  +13.69% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100   4.785k ±  2%   6.369k ±  1%  +33.10% (p=0.000 n=10)
+geomean                                                      1.060k         1.346k        +26.98%
+
+                                                           │ go-redis.txt │           go-redis+tls.txt           │
+                                                           │   p999-us    │   p999-us     vs base                │
+Latency/mode=standalone/size=100/load=mix/inflight=1          265.0 ± 12%    291.5 ± 61%  +10.00% (p=0.046 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10         604.0 ± 37%    699.5 ±  3%  +15.81% (p=0.019 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100       4.050k ±  7%   5.645k ±  3%  +39.38% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000      25.67k ± 21%   35.73k ±  5%  +39.17% (p=0.001 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1      387.5 ±  7%    441.5 ± 42%  +13.94% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10     959.5 ±  5%    982.0 ± 12%   +2.34% (p=0.022 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100   5.479k ±  5%   7.251k ±  5%  +32.34% (p=0.000 n=10)
+geomean                                                      1.654k         2.003k        +21.07%
+
+                                                           │ go-redis.txt │          go-redis+tls.txt          │
+                                                           │  cpu-us/req  │ cpu-us/req  vs base                │
+Latency/mode=standalone/size=100/load=mix/inflight=1           53.97 ± 3%   55.55 ± 5%   +2.95% (p=0.019 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10          61.30 ± 4%   65.97 ± 1%   +7.60% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100         68.06 ± 5%   65.94 ± 2%   -3.12% (p=0.009 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000        79.45 ± 3%   77.28 ± 3%   -2.72% (p=0.011 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1       64.23 ± 4%   73.15 ± 3%  +13.89% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10      79.79 ± 2%   85.41 ± 2%   +7.04% (p=0.000 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100     83.60 ± 4%   83.08 ± 2%        ~ (p=0.481 n=10)
+geomean                                                        69.29        71.65        +3.41%
+
+                                                           │ go-redis.txt │         go-redis+tls.txt          │
+                                                           │   rss-MiB    │  rss-MiB    vs base               │
+Latency/mode=standalone/size=100/load=mix/inflight=1          28.85 ±  4%   29.25 ± 4%       ~ (p=0.092 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=10         32.80 ±  5%   33.15 ± 2%       ~ (p=0.515 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=100        70.15 ±  2%   72.90 ± 3%  +3.92% (p=0.001 n=10)
+Latency/mode=standalone/size=100/load=mix/inflight=1000       256.6 ± 13%   237.6 ± 6%  -7.39% (p=0.009 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=1      27.70 ±  6%   28.80 ± 5%       ~ (p=0.055 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=10     35.65 ±  2%   35.95 ± 5%       ~ (p=0.109 n=10)
+Latency/mode=standalone/size=100/load=batch10/inflight=100    75.15 ±  3%   78.50 ± 3%  +4.46% (p=0.000 n=10)
+geomean                                                       53.56         54.15       +1.11%
+
+                                                           │ go-redis.txt  │            go-redis+tls.txt            │
+                                                           │ cache-hit-pct │ cache-hit-pct  vs base                 │
+Latency/mode=standalone/size=100/load=mix/inflight=1          0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=10         0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=100        0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=1000       0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=1      0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=10     0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=100    0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                  ²                  +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                           │ go-redis.txt │          go-redis+tls.txt           │
+                                                           │    errors    │   errors    vs base                 │
+Latency/mode=standalone/size=100/load=mix/inflight=1         0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=10        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=100       0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=mix/inflight=1000      0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=1     0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=10    0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=standalone/size=100/load=batch10/inflight=100   0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                                 ²               +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

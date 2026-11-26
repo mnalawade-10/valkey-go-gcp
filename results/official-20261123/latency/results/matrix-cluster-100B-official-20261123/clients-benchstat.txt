@@ -1,0 +1,91 @@
+                                                        │ valkey-go.txt │             go-redis.txt             │       go-redis-autopipeline.txt       │              glide.txt              │
+                                                        │     req/s     │    req/s      vs base                │     req/s      vs base                │    req/s     vs base                │
+Latency/mode=cluster/size=100/load=mix/inflight=1          12.367k ± 2%   10.803k ± 3%  -12.65% (p=0.000 n=10)    6.976k ±  7%  -43.60% (p=0.000 n=10)   6.219k ± 4%  -49.71% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=10          89.03k ± 2%    87.15k ± 2%   -2.11% (p=0.004 n=10)    50.29k ±  1%  -43.52% (p=0.000 n=10)   28.96k ± 3%  -67.47% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=100        579.73k ± 2%   151.03k ± 4%  -73.95% (p=0.000 n=10)   217.07k ±  5%  -62.56% (p=0.000 n=10)   39.64k ± 2%  -93.16% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=1000      2003.30k ± 4%   155.31k ± 1%  -92.25% (p=0.000 n=10)   462.91k ± 57%  -76.89% (p=0.000 n=10)   40.17k ± 2%  -97.99% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=1       7.047k ± 4%    6.055k ± 4%  -14.08% (p=0.000 n=10)    6.052k ±  2%  -14.12% (p=0.000 n=10)   4.860k ± 3%  -31.03% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=10      43.51k ± 2%    37.25k ± 1%  -14.40% (p=0.000 n=10)    36.78k ± 10%  -15.47% (p=0.000 n=10)   11.86k ± 1%  -72.74% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=100    203.58k ± 1%    46.70k ± 1%  -77.06% (p=0.000 n=10)    46.18k ±  6%  -77.32% (p=0.000 n=10)   12.54k ± 1%  -93.84% (p=0.000 n=10)
+geomean                                                     96.83k         42.05k       -56.57%                   44.80k        -53.73%                  15.42k       -84.08%
+
+                                                        │ valkey-go.txt │             go-redis.txt              │       go-redis-autopipeline.txt       │               glide.txt                │
+                                                        │    p50-us     │    p50-us     vs base                 │    p50-us     vs base                 │    p50-us     vs base                  │
+Latency/mode=cluster/size=100/load=mix/inflight=1            77.00 ± 1%    87.50 ±  3%   +13.64% (p=0.000 n=10)   136.00 ±  5%   +76.62% (p=0.000 n=10)    150.50 ± 4%    +95.45% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=10           107.0 ± 3%    105.0 ±  2%         ~ (p=0.126 n=10)    143.0 ±  1%   +33.64% (p=0.000 n=10)     326.0 ± 3%   +204.67% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=100          155.5 ± 2%    562.0 ±  2%  +261.41% (p=0.000 n=10)    399.0 ±  7%  +156.59% (p=0.000 n=10)    2595.0 ± 2%  +1568.81% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=1000         440.0 ± 2%   2343.0 ± 36%  +432.50% (p=0.000 n=10)   2093.0 ± 36%  +375.68% (p=0.000 n=10)   24775.0 ± 2%  +5530.68% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=1        135.0 ± 4%    157.0 ±  1%   +16.30% (p=0.000 n=10)    157.0 ±  1%   +16.30% (p=0.000 n=10)     188.0 ± 4%    +39.26% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=10       211.0 ± 2%    252.0 ±  2%   +19.43% (p=0.000 n=10)    255.5 ±  6%   +21.09% (p=0.000 n=10)     831.0 ± 1%   +293.84% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=100      438.5 ± 1%   1991.0 ±  1%  +354.05% (p=0.000 n=10)   2012.5 ±  4%  +358.95% (p=0.000 n=10)    8251.0 ± 1%  +1781.64% (p=0.000 n=10)
+geomean                                                      183.6         370.2        +101.60%                   387.5        +111.00%                   1.222k        +565.39%
+
+                                                        │ valkey-go.txt │              go-redis.txt               │       go-redis-autopipeline.txt       │               glide.txt                │
+                                                        │    p99-us     │    p99-us      vs base                  │    p99-us     vs base                 │    p99-us     vs base                  │
+Latency/mode=cluster/size=100/load=mix/inflight=1            170.0 ± 6%     188.0 ±  5%    +10.59% (p=0.000 n=10)    273.5 ± 16%   +60.88% (p=0.000 n=10)     315.5 ± 5%    +85.59% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=10           215.5 ± 4%     245.5 ±  5%    +13.92% (p=0.001 n=10)    530.0 ±  2%  +145.94% (p=0.000 n=10)     681.0 ± 5%   +216.01% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=100          430.0 ± 6%    1956.5 ± 23%   +355.00% (p=0.000 n=10)   1414.5 ±  2%  +228.95% (p=0.000 n=10)    4293.0 ± 4%   +898.37% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=1000        1.546k ± 8%   20.119k ±  7%  +1201.78% (p=0.000 n=10)   4.701k ± 34%  +204.17% (p=0.000 n=10)   32.527k ± 3%  +2004.63% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=1        278.5 ± 5%     333.5 ±  6%    +19.75% (p=0.000 n=10)    325.0 ±  3%   +16.70% (p=0.000 n=10)     408.0 ± 6%    +46.50% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=10       568.0 ± 5%     724.0 ±  4%    +27.46% (p=0.000 n=10)    720.5 ± 20%   +26.85% (p=0.000 n=10)    1437.5 ± 2%   +153.08% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=100     1.734k ± 2%    4.089k ±  2%   +135.81% (p=0.000 n=10)   4.143k ± 20%  +138.93% (p=0.000 n=10)   13.567k ± 3%   +682.41% (p=0.000 n=10)
+geomean                                                      488.9         1.087k         +122.34%                   990.5        +102.58%                   2.186k        +347.16%
+
+                                                        │ valkey-go.txt │              go-redis.txt              │       go-redis-autopipeline.txt       │                glide.txt                │
+                                                        │    p999-us    │    p999-us     vs base                 │   p999-us     vs base                 │    p999-us     vs base                  │
+Latency/mode=cluster/size=100/load=mix/inflight=1           325.0 ±  6%     354.0 ±  5%    +8.92% (p=0.000 n=10)    507.5 ±  9%   +56.15% (p=0.000 n=10)     538.5 ±  4%    +65.69% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=10          370.0 ± 29%     588.5 ±  3%   +59.05% (p=0.002 n=10)    977.5 ±  3%  +164.19% (p=0.000 n=10)    1038.0 ± 45%   +180.54% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=100         861.5 ±  4%    2901.0 ± 14%  +236.74% (p=0.000 n=10)   2193.0 ±  3%  +154.56% (p=0.000 n=10)    5569.0 ±  4%   +546.43% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=1000       2.907k ±  3%   22.399k ± 18%  +670.52% (p=0.000 n=10)   6.395k ± 24%  +119.99% (p=0.000 n=10)   35.919k ±  8%  +1135.60% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=1       482.0 ± 12%     647.0 ±  5%   +34.23% (p=0.001 n=10)    654.0 ±  5%   +35.68% (p=0.001 n=10)     734.5 ± 51%    +52.39% (p=0.001 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=10     1.210k ±  2%    1.524k ±  6%   +25.86% (p=0.000 n=10)   1.630k ± 18%   +34.66% (p=0.000 n=10)    2.044k ±  6%    +68.86% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=100    2.629k ±  3%    6.129k ±  3%  +133.13% (p=0.000 n=10)   6.209k ±  5%  +136.17% (p=0.000 n=10)   16.071k ±  4%   +511.30% (p=0.000 n=10)
+geomean                                                     895.5          1.876k        +109.49%                  1.728k         +92.98%                   3.091k         +245.19%
+
+                                                        │ valkey-go.txt │             go-redis.txt             │       go-redis-autopipeline.txt       │              glide.txt               │
+                                                        │  cpu-us/req   │ cpu-us/req   vs base                 │  cpu-us/req   vs base                 │ cpu-us/req   vs base                 │
+Latency/mode=cluster/size=100/load=mix/inflight=1            50.51 ± 4%    62.13 ± 3%   +23.02% (p=0.000 n=10)   133.16 ±  5%  +163.63% (p=0.000 n=10)   130.40 ± 4%  +158.16% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=10           42.02 ± 1%    69.80 ± 2%   +66.08% (p=0.000 n=10)    84.76 ±  1%  +101.69% (p=0.000 n=10)    61.95 ± 2%   +47.40% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=100          11.40 ± 1%    64.63 ± 2%  +466.93% (p=0.000 n=10)    34.78 ±  6%  +205.13% (p=0.000 n=10)    51.64 ± 2%  +352.94% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=1000         6.420 ± 2%   64.295 ± 2%  +901.48% (p=0.000 n=10)   16.565 ± 24%  +158.02% (p=0.000 n=10)   52.910 ± 2%  +724.14% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=1        238.8 ± 3%    295.6 ± 2%   +23.77% (p=0.000 n=10)    296.9 ±  2%   +24.30% (p=0.000 n=10)    195.2 ± 2%   -18.26% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=10       120.0 ± 1%    250.4 ± 0%  +108.71% (p=0.000 n=10)    256.0 ±  4%  +113.39% (p=0.000 n=10)    139.3 ± 1%   +16.11% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=100      47.70 ± 1%   203.09 ± 1%  +325.71% (p=0.000 n=10)   202.96 ±  6%  +325.45% (p=0.000 n=10)   135.22 ± 1%  +183.45% (p=0.000 n=10)
+geomean                                                      41.51         115.3       +177.76%                   100.0        +141.02%                   97.06       +133.82%
+
+                                                        │ valkey-go.txt │            go-redis.txt             │      go-redis-autopipeline.txt      │             glide.txt              │
+                                                        │    rss-MiB    │   rss-MiB    vs base                │   rss-MiB    vs base                │  rss-MiB    vs base                │
+Latency/mode=cluster/size=100/load=mix/inflight=1            32.65 ± 6%    28.30 ± 6%  -13.32% (p=0.000 n=10)    32.15 ± 6%        ~ (p=0.108 n=10)   33.20 ± 1%   +1.68% (p=0.022 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=10           37.70 ± 3%    35.80 ± 6%   -5.04% (p=0.000 n=10)    44.40 ± 4%  +17.77% (p=0.000 n=10)   37.05 ± 4%        ~ (p=0.195 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=100          63.40 ± 2%    90.65 ± 2%  +42.98% (p=0.000 n=10)    72.90 ± 5%  +14.98% (p=0.000 n=10)   67.10 ± 2%   +5.84% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=mix/inflight=1000         313.2 ± 1%    343.1 ± 1%   +9.53% (p=0.000 n=10)    337.4 ± 2%   +7.69% (p=0.000 n=10)   239.9 ± 8%  -23.42% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=1        34.55 ± 3%    28.35 ± 7%  -17.95% (p=0.000 n=10)    30.45 ± 6%  -11.87% (p=0.000 n=10)   32.55 ± 5%   -5.79% (p=0.009 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=10       38.30 ± 5%    49.30 ± 1%  +28.72% (p=0.000 n=10)    50.50 ± 3%  +31.85% (p=0.000 n=10)   36.20 ± 5%   -5.48% (p=0.000 n=10)
+Latency/mode=cluster/size=100/load=batch10/inflight=100      69.80 ± 2%   109.45 ± 2%  +56.81% (p=0.000 n=10)   110.05 ± 2%  +57.66% (p=0.000 n=10)   69.95 ± 2%        ~ (p=0.224 n=10)
+geomean                                                      58.19         64.84       +11.44%                   66.81       +14.82%                  55.55        -4.53%
+
+                                                        │ valkey-go.txt │              go-redis.txt              │       go-redis-autopipeline.txt        │               glide.txt                │
+                                                        │ cache-hit-pct │ cache-hit-pct  vs base                 │ cache-hit-pct  vs base                 │ cache-hit-pct  vs base                 │
+Latency/mode=cluster/size=100/load=mix/inflight=1          0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=cluster/size=100/load=mix/inflight=10         0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=cluster/size=100/load=mix/inflight=100        0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=cluster/size=100/load=mix/inflight=1000       0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=cluster/size=100/load=batch10/inflight=1      0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=cluster/size=100/load=batch10/inflight=10     0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=cluster/size=100/load=batch10/inflight=100    0.000 ± 0%        0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹      0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                               ²                  +0.00%                ²                  +0.00%                ²                  +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean
+
+                                                        │ valkey-go.txt │            go-redis.txt             │      go-redis-autopipeline.txt      │              glide.txt              │
+                                                        │    errors     │   errors    vs base                 │   errors    vs base                 │   errors    vs base                 │
+Latency/mode=cluster/size=100/load=mix/inflight=1          0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=cluster/size=100/load=mix/inflight=10         0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=cluster/size=100/load=mix/inflight=100        0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=cluster/size=100/load=mix/inflight=1000       0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=cluster/size=100/load=batch10/inflight=1      0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=cluster/size=100/load=batch10/inflight=10     0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹
+Latency/mode=cluster/size=100/load=batch10/inflight=100    0.000 ± 0%     0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹   0.000 ± 0%       ~ (p=1.000 n=10) ¹
+geomean                                                               ²               +0.00%                ²               +0.00%                ²               +0.00%                ²
+¹ all samples are equal
+² summaries must be >0 to compute geomean

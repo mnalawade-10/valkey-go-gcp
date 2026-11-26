@@ -1,0 +1,15 @@
+valkey-go (no cache): reads=629115 stale=0 serverGETs=629115 writes=10107
+valkey-go DoCache: reads=70383575 stale=13499 serverGETs=10000 writes=10131
+go-redis CSC: reads=43021169 stale=1034704 serverGETs=9996 writes=10127
+GLIDE cache (time-based): reads=952916 stale=948458 serverGETs=0 writes=10107
+GLIDE cache (server-assisted): reads=904357 stale=836 serverGETs=11891 writes=10109
+valkey-go (no cache): reads=643883 stale=0 serverGETs=643883 writes=10107
+valkey-go DoCache: reads=73103311 stale=11212 serverGETs=10000 writes=10130
+go-redis CSC: reads=45689905 stale=1045325 serverGETs=9996 writes=10132
+GLIDE cache (time-based): reads=906735 stale=902232 serverGETs=0 writes=10108
+GLIDE cache (server-assisted): reads=932243 stale=805 serverGETs=11890 writes=10108
+valkey-go (no cache): reads=643451 stale=0 serverGETs=643451 writes=10105
+valkey-go DoCache: reads=73996529 stale=12296 serverGETs=10000 writes=10133
+go-redis CSC: reads=52376616 stale=1158445 serverGETs=9996 writes=10123
+GLIDE cache (time-based): reads=971855 stale=966654 serverGETs=0 writes=10108
+GLIDE cache (server-assisted): reads=931990 stale=725 serverGETs=11875 writes=10107

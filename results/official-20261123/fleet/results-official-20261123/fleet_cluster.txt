@@ -1,0 +1,8 @@
+mode=cluster nodes=3 instances=50 load=32 goroutines/instance for 3s on 64 keys, app vCPUs (GOMAXPROCS)=4, median of 5 runs
+
+| Library | Connections per instance, idle | Connections per instance under load (busiest node) | Instances until 32,000 connections on a node | Server memory per instance, under load | First reply p50 / p99 / max | All instances up | Failed GETs under load | GETs/s, all instances |
+| :--- | :- | :- | :- | :- | :- | :- | :- | :- |
+| valkey-go | 2.3 | 1.0 | 32000 | 35 KB | 29.6ms / 38.2ms / 38.2ms | 40ms | 0 | 277084 |
+| go-redis | 2.0 | 20.0 | 1600 | 914 KB | 27.4ms / 33ms / 33ms | 34ms | 0 | 97558 |
+| go-redis-autopipeline | 2.0 | 2.4 | 13445 | 93 KB | 10.7ms / 11.9ms / 11.9ms | 12ms | 0 | 214221 |
+| glide | 6.0 | 2.0 | 16000 | 86 KB | 17.3ms / 25.6ms / 25.6ms | 28ms | 690 (0.036%) | 127917 |
